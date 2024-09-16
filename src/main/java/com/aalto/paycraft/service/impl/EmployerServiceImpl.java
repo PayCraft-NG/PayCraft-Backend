@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -72,6 +73,7 @@ public class EmployerServiceImpl implements IEmployerService {
     }
 
     @Override
+    @Transactional
     public DefaultApiResponse<EmployerDTO> updateEmployer(EmployerUpdateDTO employerUpdateDTO, UUID employerId) {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
         Employer employer = verifyAndFetchById(employerId);
@@ -82,13 +84,17 @@ public class EmployerServiceImpl implements IEmployerService {
         log.info("Employer (after update): {}", employer);
         employerRepository.save(employer);
 
-        // Only the employer ID and updated attributes are returned
-        EmployerDTO responseDTO = EmployerMapper.toDTO(employer);
-        responseDTO.setEmployerId(employer.getEmployerId());
-
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
         response.setStatusMessage("Employer updated successfully");
-        response.setData(responseDTO);
+        // Only the employer ID and updated attributes are returned
+        response.setData(EmployerDTO.builder()
+                .employerId(employer.getEmployerId())
+                .firstName(employerUpdateDTO.getFirstName())
+                .lastName(employerUpdateDTO.getLastName())
+                .phoneNumber(employerUpdateDTO.getPhoneNumber())
+                .jobTitle(employerUpdateDTO.getJobTitle())
+                .streetAddress(employerUpdateDTO.getStreetAddress())
+                .build());
         return response;
     }
 
@@ -98,6 +104,7 @@ public class EmployerServiceImpl implements IEmployerService {
         Employer employer = verifyAndFetchById(employerId);
 
         employerRepository.delete(employer);
+        //todo: foreign key delete
 
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
         response.setStatusMessage("Employer deleted successfully");
@@ -111,6 +118,7 @@ public class EmployerServiceImpl implements IEmployerService {
     }
 
     @Override
+    @Transactional
     public DefaultApiResponse<EmployerDTO> updateEmployerPassword(EmployerPasswordUpdateDTO employerPasswordUpdateDTO, UUID employerId) {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
         Employer employer = verifyAndFetchById(employerId);
@@ -118,11 +126,12 @@ public class EmployerServiceImpl implements IEmployerService {
         if(Objects.equals(employerPasswordUpdateDTO.getOldPassword(), employerPasswordUpdateDTO.getNewPassword()))
             throw new PasswordUpdateException("New password must be different from the old password");
 
-        if(!passwordEncoder.matches(employer.getPassword(), employerPasswordUpdateDTO.getOldPassword()))
+        if(!passwordEncoder.matches(employerPasswordUpdateDTO.getOldPassword(), employer.getPassword()))
             throw new PasswordUpdateException("Old password is incorrect");
 
         log.info("Employer password (before update): {}", employer.getPassword());
-        updatePassword(employer, employerPasswordUpdateDTO.getNewPassword());
+
+        employerRepository.save(updatePassword(employer, employerPasswordUpdateDTO.getNewPassword()));
 
         log.info("Employer password (after update): {}", employer.getPassword());
 
@@ -138,9 +147,10 @@ public class EmployerServiceImpl implements IEmployerService {
         return response;
     }
 
-    private void updatePassword(Employer employer, String password) {
+    private Employer updatePassword(Employer employer, String password) {
         // Encrypt and update the password
         employer.setPassword(passwordEncoder.encode(password));
+        return employer;
     }
 
     private Employer verifyAndFetchById(UUID employerId){
@@ -174,14 +184,15 @@ public class EmployerServiceImpl implements IEmployerService {
             destEmployer.setStreetAddress(srcEmployerDTO.getStreetAddress());
 
         // Ensure the newly updated attributes do not exist already
-        if(srcEmployerDTO.getEmailAddress() != null && !employerRepository.existsByEmailAddress(srcEmployerDTO.getEmailAddress()))
+        if(srcEmployerDTO.getEmailAddress() != null) {
+            if(employerRepository.existsByEmailAddress(srcEmployerDTO.getEmailAddress()))
+                throw new EmployerAlreadyExists("Employer account already registered with this email address: " + srcEmployerDTO.getEmailAddress());
             destEmployer.setEmailAddress(srcEmployerDTO.getEmailAddress());
-        else
-            throw new EmployerAlreadyExists("Employer account already registered with this email address: " + srcEmployerDTO.getEmailAddress());
-
-        if(srcEmployerDTO.getPhoneNumber() != null && !employerRepository.existsByPhoneNumber(srcEmployerDTO.getPhoneNumber()))
+        }
+        if(srcEmployerDTO.getPhoneNumber() != null) {
+            if (employerRepository.existsByPhoneNumber(srcEmployerDTO.getPhoneNumber()))
+                throw new EmployerAlreadyExists("Employer account already registered with this phone number: " + srcEmployerDTO.getPhoneNumber());
             destEmployer.setPhoneNumber(srcEmployerDTO.getPhoneNumber());
-        else
-            throw new EmployerAlreadyExists("Employer account already registered with this phone number: " + srcEmployerDTO.getPhoneNumber());
+        }
     }
 }
