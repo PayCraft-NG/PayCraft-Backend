@@ -23,7 +23,7 @@ public class EmployerPasswordUpdateDTO {
     private String oldPassword;
 
     @Size(min = 8, message = "New Password must be at least 8 characters long")
-    @NotEmpty(message = "Password cannot be null or empty")
+    @NotEmpty(message = "New Password cannot be null or empty")
     @Pattern(
             regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
             message = "New Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
