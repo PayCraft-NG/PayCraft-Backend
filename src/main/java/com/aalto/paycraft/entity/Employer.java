@@ -12,15 +12,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-@Entity
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-@ToString
+@Entity @Getter @Setter
+@AllArgsConstructor @NoArgsConstructor @ToString
 @Table(name = "Employer")
 public class Employer extends BaseEntity implements UserDetails {
-    @Id @GeneratedValue
+
+    @Id
+    @GeneratedValue
     @JdbcTypeCode(Types.VARCHAR)
     private UUID employerId;
 
@@ -37,7 +35,7 @@ public class Employer extends BaseEntity implements UserDetails {
     private String phoneNumber;
 
     @Column(nullable = false)
-    private String streetAddress;
+    private String personalAddress;
 
     @Column(nullable = false)
     private String jobTitle;
