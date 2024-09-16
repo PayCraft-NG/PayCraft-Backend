@@ -1,6 +1,6 @@
 package com.aalto.paycraft.entity;
 
-import com.aalto.paycraft.dto.enumeration.SalaryCurrency;
+import com.aalto.paycraft.dto.enums.SalaryCurrency;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;

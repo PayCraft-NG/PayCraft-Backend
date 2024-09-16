@@ -6,7 +6,7 @@ import lombok.*;
 
 @Entity @Getter @Setter @Builder
 @NoArgsConstructor @AllArgsConstructor
-@ToString(exclude = {"employerProfile"})
+@ToString(exclude = {"employer"})
 public class AuthToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,6 +28,6 @@ public class AuthToken {
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employerProfileId", referencedColumnName = "employerProfileId")
-    private EmployerProfile employerProfile;
+    @JoinColumn(name = "employerId", referencedColumnName = "employerId")
+    private Employer employer;
 }

@@ -1,6 +1,6 @@
 package com.aalto.paycraft.services;
 
-import com.aalto.paycraft.entity.EmployerProfile;
+import com.aalto.paycraft.entity.Employer;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Claims;
 import jakarta.annotation.PostConstruct;
@@ -41,22 +41,22 @@ public class JWTService {
     }
 
     // Create a JWT token for an employer profile
-    public String createJWT(EmployerProfile employerProfile) {
-        return generateToken(employerProfile);
+    public String createJWT(Employer employer) {
+        return generateToken(employer);
     }
 
-    // Generate a JWT with claims from the EmployerProfile entity
-    private String generateToken(EmployerProfile employerProfile) {
+    // Generate a JWT with claims from the Employer entity
+    private String generateToken(Employer employer) {
         HashMap<String, Object> claims = new HashMap<>();
-        claims.put("userID", employerProfile.getEmployerProfileId());
-        claims.put("firstName", employerProfile.getFirstName());
-        claims.put("lastName", employerProfile.getLastName());
-        claims.put("email", employerProfile.getEmailAddress());
-        claims.put("phoneNumber", employerProfile.getPhoneNumber());
+        claims.put("userID", employer.getEmployerId());
+        claims.put("firstName", employer.getFirstName());
+        claims.put("lastName", employer.getLastName());
+        claims.put("email", employer.getEmailAddress());
+        claims.put("phoneNumber", employer.getPhoneNumber());
 
         return Jwts.builder()
                 .claims(claims)
-                .subject(employerProfile.getUsername())
+                .subject(employer.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))  // Token issue time
                 .expiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_VALIDITY_TIME))  // Token expiration
                 .signWith(SECRET_KEY)  // Sign the token with the secret key
@@ -64,10 +64,10 @@ public class JWTService {
     }
 
     // Generate a refresh token with custom claims
-    public String generateRefreshToken(HashMap<String, Object> claims, EmployerProfile employerProfile) {
+    public String generateRefreshToken(HashMap<String, Object> claims, Employer employer) {
         return Jwts.builder()
                 .claims(claims)
-                .subject(employerProfile.getUsername())
+                .subject(employer.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))  // Issue time for refresh token
                 .expiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_VALIDITY_TIME))  // Refresh token expiration
                 .signWith(SECRET_KEY)  // Sign with secret key
