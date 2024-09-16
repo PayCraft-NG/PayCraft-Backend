@@ -1,6 +1,6 @@
 package com.aalto.paycraft.services;
 
-import com.aalto.paycraft.repository.EmployerProfileRepository;
+import com.aalto.paycraft.repository.EmployerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -11,12 +11,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class EmployerDetailService implements UserDetailsService {
 
-    private final EmployerProfileRepository employerProfileRepository;
+    private final EmployerRepository employerRepository;
 
     // Load user by their email (username in this case) for authentication purposes
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        var userOptional = employerProfileRepository.findByEmailAddress(username);
+        var userOptional = employerRepository.findByEmailAddress(username);
 
         // If user is found, return it; otherwise, throw an exception
         if (userOptional.isPresent()) {

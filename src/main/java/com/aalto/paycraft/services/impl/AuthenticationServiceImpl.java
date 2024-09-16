@@ -7,7 +7,7 @@ import com.aalto.paycraft.dto.RefreshTokenRequestDto;
 import com.aalto.paycraft.entity.AuthToken;
 import com.aalto.paycraft.entity.Employer;
 import com.aalto.paycraft.repository.AuthTokenRepository;
-import com.aalto.paycraft.repository.EmployerProfileRepository;
+import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.services.IAuthenticationService;
 import com.aalto.paycraft.services.JWTService;
 import jakarta.validation.constraints.NotNull;
@@ -27,7 +27,7 @@ import static com.aalto.paycraft.constants.PayCraftConstant.*;
 
 @Slf4j @Service @RequiredArgsConstructor
 public class AuthenticationServiceImpl implements IAuthenticationService {
-    private final EmployerProfileRepository employerProfileRepository;
+    private final EmployerRepository employerRepository;
     private final AuthTokenRepository tokenRepository;
     private final JWTService jwtService;
     private final PasswordEncoder passwordEncoder;
@@ -44,7 +44,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             LoginRequestDto.validate(requestBody);
 
             Employer employer;
-            Optional<Employer> employerProfileOpt = employerProfileRepository.findByEmailAddress(requestBody.emailAddress());
+            Optional<Employer> employerProfileOpt = employerRepository.findByEmailAddress(requestBody.emailAddress());
 
             if(employerProfileOpt.isPresent()){
                 employer = employerProfileOpt.get();
@@ -101,7 +101,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
                 return response;
             }
 
-            Optional<Employer> existingUserAccount = employerProfileRepository.findByEmailAddress(userEmail);
+            Optional<Employer> existingUserAccount = employerRepository.findByEmailAddress(userEmail);
             if(existingUserAccount.isPresent()){
                 Employer employer = existingUserAccount.get();
 
