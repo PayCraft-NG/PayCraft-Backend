@@ -3,6 +3,7 @@ package com.aalto.paycraft.controller;
 import com.aalto.paycraft.dto.DefaultApiResponse;
 import com.aalto.paycraft.dto.EmployerDTO;
 import com.aalto.paycraft.dto.EmployerPasswordUpdateDTO;
+import com.aalto.paycraft.dto.EmployerUpdateDTO;
 import com.aalto.paycraft.service.IEmployerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,10 +36,10 @@ public class EmployerController {
 
     @PutMapping(value = "/update/{employerId}")
     public ResponseEntity<DefaultApiResponse<EmployerDTO>> updateEmployer(
-            @Valid @RequestBody EmployerDTO employerDTO,
+            @Valid @RequestBody EmployerUpdateDTO employerUpdateDTO,
             @Valid @PathVariable("employerId") UUID employerId){
         return ResponseEntity.status(HttpStatus.OK)
-                .body(iEmployerService.updateEmployer(employerDTO, employerId));
+                .body(iEmployerService.updateEmployer(employerUpdateDTO, employerId));
     }
 
     @DeleteMapping(value = "/delete/{employerId}")
