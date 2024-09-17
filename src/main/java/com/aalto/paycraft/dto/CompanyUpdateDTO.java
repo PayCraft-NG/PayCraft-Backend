@@ -18,29 +18,22 @@ import java.util.UUID;
 @NoArgsConstructor
 @JsonIgnoreProperties
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CompanyDTO {
+public class CompanyUpdateDTO {
 
-    @NotEmpty(message = "Company name cannot be null or empty")
     private String companyName;
 
-    @NotNull(message = "Company size cannot be null or empty")
     private CompanySize companySize;
 
     @Email(message = "Company email address format is invalid")
-    @NotEmpty(message = "Company email address cannot be null or empty")
     private String companyEmailAddress;
 
-    @NotEmpty(message = "Company phone number cannot be null or empty")
     @Pattern(regexp = "(^$|[0-9]{13})", message = "Company phone number must be 13 digits")
     private String companyPhoneNumber;
 
-    @NotEmpty(message = "Company street address cannot be null or empty")
     private String companyStreetAddress;
 
-    @NotEmpty(message = "Company country cannot be null or empty")
     private String companyCountry;
 
-    @NotNull(message = "Company currency cannot be null")
     private CompanyCurrency companyCurrency;
 
     private UUID companyId;

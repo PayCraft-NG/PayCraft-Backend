@@ -2,6 +2,7 @@ package com.aalto.paycraft.controller;
 
 
 import com.aalto.paycraft.dto.CompanyDTO;
+import com.aalto.paycraft.dto.CompanyUpdateDTO;
 import com.aalto.paycraft.dto.DefaultApiResponse;
 import com.aalto.paycraft.service.ICompanyService;
 import jakarta.validation.Valid;
@@ -37,16 +38,19 @@ public class CompanyController {
 
     @GetMapping(value = "/companies")
     public ResponseEntity<DefaultApiResponse<List<CompanyDTO>>> getCompaniesByEmployerId(
-            @Valid @RequestParam("employerId") UUID employerId){
+            @Valid @RequestParam("employerId") UUID employerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size){
         return ResponseEntity.status(HttpStatus.OK)
-                .body(iCompanyService.getCompaniesByEmployerId(employerId));
+                .body(iCompanyService.getCompaniesByEmployerId(employerId, page, size));
     }
 
     @PutMapping(value = "/update/{companyId}")
     public ResponseEntity<DefaultApiResponse<CompanyDTO>> updateCompany(
+            @Valid @RequestBody CompanyUpdateDTO companyUpdateDTO,
             @Valid @PathVariable("companyId") UUID companyId){
         return ResponseEntity.status(HttpStatus.OK)
-                .body(iCompanyService.updateCompany(companyId));
+                .body(iCompanyService.updateCompany(companyUpdateDTO, companyId));
     }
 
     @DeleteMapping(value = "/delete/{companyId}")
