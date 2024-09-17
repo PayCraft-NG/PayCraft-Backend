@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+@Builder
 @Entity
 @Getter
 @Setter
@@ -78,6 +79,7 @@ public class Employer extends BaseEntity implements UserDetails {
         return true;
     }
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean deleted = false;  // soft delete flag
 

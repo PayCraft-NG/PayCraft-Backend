@@ -1,6 +1,6 @@
 package com.aalto.paycraft.entity;
 
-import com.aalto.paycraft.dto.enumeration.SalaryCurrency;
+import com.aalto.paycraft.dto.enumeration.Currency;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -62,7 +62,7 @@ public class Employee extends BaseEntity{
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
-    private SalaryCurrency salaryCurrency;
+    private Currency salaryCurrency;
 
     @ManyToOne
     @JoinColumn(name = "companyId", nullable = false)

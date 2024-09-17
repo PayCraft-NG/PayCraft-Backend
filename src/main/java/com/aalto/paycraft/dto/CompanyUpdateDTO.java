@@ -1,6 +1,6 @@
 package com.aalto.paycraft.dto;
 
-import com.aalto.paycraft.dto.enumeration.CompanyCurrency;
+import com.aalto.paycraft.dto.enumeration.Currency;
 import com.aalto.paycraft.dto.enumeration.CompanySize;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -34,7 +34,7 @@ public class CompanyUpdateDTO {
 
     private String companyCountry;
 
-    private CompanyCurrency companyCurrency;
+    private Currency companyCurrency;
 
     private UUID companyId;
 

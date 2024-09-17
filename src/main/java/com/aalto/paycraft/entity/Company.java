@@ -1,6 +1,6 @@
 package com.aalto.paycraft.entity;
 
-import com.aalto.paycraft.dto.enumeration.CompanyCurrency;
+import com.aalto.paycraft.dto.enumeration.Currency;
 import com.aalto.paycraft.dto.enumeration.CompanySize;
 import jakarta.persistence.*;
 import lombok.*;
@@ -43,7 +43,7 @@ public class Company extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
-    private CompanyCurrency companyCurrency;
+    private Currency companyCurrency;
 
     @ManyToOne
     @JoinColumn(name = "employerId", referencedColumnName = "employerId", nullable = false)

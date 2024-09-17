@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public interface CompanyRepository extends JpaRepository<Company, UUID> {
     boolean existsByCompanyNameAndEmployer_EmployerId(String companyName, UUID employerId);
-    List<Company> findAllByEmployerId_EmployerId(UUID employerId, Pageable pageable);
+    List<Company> findAllByEmployer_EmployerId(UUID employerId, Pageable pageable);
     boolean existsByCompanyPhoneNumber(String phoneNumber);
     boolean existsByCompanyEmailAddress(String companyEmailAddress);
 }
