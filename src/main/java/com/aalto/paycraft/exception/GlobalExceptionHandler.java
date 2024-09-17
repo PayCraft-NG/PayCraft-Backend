@@ -1,4 +1,4 @@
-package com.aalto.paycraft.exceptions;
+package com.aalto.paycraft.exception;
 
 import com.aalto.paycraft.dto.DefaultApiResponse;
 import com.aalto.paycraft.dto.ErrorResponseDto;

@@ -1,15 +1,15 @@
-package com.aalto.paycraft.services.impl;
+package com.aalto.paycraft.service.impl;
 
 import com.aalto.paycraft.dto.AuthorizationResponseDto;
 import com.aalto.paycraft.dto.DefaultApiResponse;
 import com.aalto.paycraft.dto.LoginRequestDto;
 import com.aalto.paycraft.dto.RefreshTokenRequestDto;
 import com.aalto.paycraft.entity.AuthToken;
-import com.aalto.paycraft.entity.EmployerProfile;
+import com.aalto.paycraft.entity.Employer;
 import com.aalto.paycraft.repository.AuthTokenRepository;
-import com.aalto.paycraft.repository.EmployerProfileRepository;
-import com.aalto.paycraft.services.IAuthenticationService;
-import com.aalto.paycraft.services.JWTService;
+import com.aalto.paycraft.repository.EmployerRepository;
+import com.aalto.paycraft.service.IAuthenticationService;
+import com.aalto.paycraft.service.JWTService;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +27,7 @@ import static com.aalto.paycraft.constants.PayCraftConstant.*;
 
 @Slf4j @Service @RequiredArgsConstructor
 public class AuthenticationServiceImpl implements IAuthenticationService {
-    private final EmployerProfileRepository employerProfileRepository;
+    private final EmployerRepository employerRepository;
     private final AuthTokenRepository tokenRepository;
     private final JWTService jwtService;
     private final PasswordEncoder passwordEncoder;
@@ -43,11 +43,11 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             // Validate the login request data
             LoginRequestDto.validate(requestBody);
 
-            EmployerProfile employerProfile;
-            Optional<EmployerProfile> employerProfileOpt = employerProfileRepository.findByEmailAddress(requestBody.emailAddress());
+            Employer employerProfile;
+            Optional<Employer> employerOpt = employerRepository.findByEmailAddress(requestBody.emailAddress());
 
-            if(employerProfileOpt.isPresent()){
-                employerProfile = employerProfileOpt.get();
+            if(employerOpt.isPresent()){
+                employerProfile = employerOpt.get();
 
                 log.info("USER Found on the DB with emailAddress {}.", requestBody.emailAddress());
                 if(!passwordEncoder.matches(requestBody.password(), employerProfile.getPassword())){
@@ -101,20 +101,20 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
                 return response;
             }
 
-            Optional<EmployerProfile> existingUserAccount = employerProfileRepository.findByEmailAddress(userEmail);
+            Optional<Employer> existingUserAccount = employerRepository.findByEmailAddress(userEmail);
             if(existingUserAccount.isPresent()){
-                EmployerProfile employerProfile = existingUserAccount.get();
+                Employer employer = existingUserAccount.get();
 
                 log.info("Verifying Token is valid and properly signed for user {}.", userEmail);
-                if(jwtService.isTokenValid(requestBody.refreshToken(), employerProfile)){
+                if(jwtService.isTokenValid(requestBody.refreshToken(), employer)){
                     log.info("Generating New Token for user {}.", userEmail);
 
-                    String newAccessToken = jwtService.createJWT(employerProfile);
-                    String newRefreshToken = jwtService.generateRefreshToken(generateRefreshTokenClaims(employerProfile), employerProfile);
+                    String newAccessToken = jwtService.createJWT(employer);
+                    String newRefreshToken = jwtService.generateRefreshToken(generateRefreshTokenClaims(employer), employer);
 
                     // Revoke old tokens and save the new tokens
-                    revokeOldTokens(employerProfile);
-                    saveUserAccountToken(employerProfile, newAccessToken, newRefreshToken);
+                    revokeOldTokens(employer);
+                    saveUserAccountToken(employer, newAccessToken, newRefreshToken);
 
                     response.setStatusCode(REFRESH_TOKEN_SUCCESS);
                     response.setStatusMessage("Successfully Refreshed AuthToken");
@@ -135,35 +135,35 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         return LocalDateTime.now().toString().replace("T", " ").substring(0, 16);
     }
 
-    private @NotNull accessAndRefreshToken getGenerateAccessTokenAndRefreshToken(EmployerProfile employerProfile){
+    private @NotNull accessAndRefreshToken getGenerateAccessTokenAndRefreshToken(Employer employer){
         // Log the token generation process
         log.info("Generating Access Token and Refresh Token for USER");
 
-        String jwtToken = jwtService.createJWT(employerProfile);
-        String refreshToken = jwtService.generateRefreshToken(generateRefreshTokenClaims(employerProfile), employerProfile);
+        String jwtToken = jwtService.createJWT(employer);
+        String refreshToken = jwtService.generateRefreshToken(generateRefreshTokenClaims(employer), employer);
 
-        saveUserAccountToken(employerProfile, jwtToken, refreshToken);
+        saveUserAccountToken(employer, jwtToken, refreshToken);
         return new accessAndRefreshToken(jwtToken, refreshToken);
     }
 
-    private @NotNull HashMap<String, Object> generateRefreshTokenClaims(EmployerProfile employerProfile){
+    private @NotNull HashMap<String, Object> generateRefreshTokenClaims(Employer employer){
         // Log the process of generating refresh token claims
         log.info("Generating Refresh Token Claims");
 
         HashMap<String, Object> claims = new HashMap<>();
-        claims.put("username", employerProfile.getUsername());
-        claims.put("email", employerProfile.getEmailAddress());
-        claims.put("employerId", employerProfile.getEmployerProfileId());
+        claims.put("username", employer.getUsername());
+        claims.put("email", employer.getEmailAddress());
+        claims.put("employerId", employer.getEmployerId());
         return claims;
     }
 
-    private void saveUserAccountToken(EmployerProfile employerProfile, String jwtToken, String refreshToken){
+    private void saveUserAccountToken(Employer employer, String jwtToken, String refreshToken){
         // Log the process of saving tokens
-        log.info("Saving tokens for USER {}", employerProfile.getEmailAddress());
+        log.info("Saving tokens for USER {}", employer.getEmailAddress());
 
         // Save the generated access and refresh tokens for the customer
         AuthToken token = AuthToken.builder()
-                .employerProfile(employerProfile)
+                .employer(employer)
                 .accessToken(jwtToken)
                 .refreshToken(refreshToken)
                 .expired(false)
@@ -172,17 +172,17 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         tokenRepository.save(token);
 
         // Log successful token saving
-        log.info("Saved Access and Refresh tokens for USER {}", employerProfile.getEmailAddress());
+        log.info("Saved Access and Refresh tokens for USER {}", employer.getEmailAddress());
     }
 
-    private void revokeOldTokens(EmployerProfile employerProfile){
+    private void revokeOldTokens(Employer employer){
         // Log the process of revoking old tokens
-        log.info("Revoking old tokens for customer {}", employerProfile.getEmailAddress());
+        log.info("Revoking old tokens for customer {}", employer.getEmailAddress());
 
         // Revoke all old tokens for the customer
-        List<AuthToken> validTokens = tokenRepository.findAllByEmployerProfile_EmployerProfileId(employerProfile.getEmployerProfileId());
+        List<AuthToken> validTokens = tokenRepository.findAllByEmployer_EmployerId(employer.getEmployerId());
         if (validTokens.isEmpty()){
-            log.info("No valid tokens found for customer {}.", employerProfile.getEmailAddress());
+            log.info("No valid tokens found for customer {}.", employer.getEmailAddress());
             return;
         }
         validTokens.forEach(token -> {
@@ -192,6 +192,6 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         tokenRepository.saveAll(validTokens);
 
         // Log successful token revocation
-        log.info("Revoked old tokens for customer {}.", employerProfile.getEmailAddress());
+        log.info("Revoked old tokens for customer {}.", employer.getEmailAddress());
     }
 }

@@ -1,4 +1,4 @@
-package com.aalto.paycraft.services;
+package com.aalto.paycraft.service;
 
 import com.aalto.paycraft.dto.AuthorizationResponseDto;
 import com.aalto.paycraft.dto.DefaultApiResponse;

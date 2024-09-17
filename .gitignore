@@ -4,7 +4,8 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 log
-node_modules
+node_modules/
+src/main/resources/application-qa.yml
 
 ### STS ###
 .apt_generated
