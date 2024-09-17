@@ -1,23 +1,21 @@
 package com.aalto.paycraft.dto;
 
+import com.aalto.paycraft.dto.enums.SalaryCurrency;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
-import java.util.UUID;
+import java.math.BigDecimal;
+import java.util.Date;
 
-@Data @Builder
-@AllArgsConstructor @NoArgsConstructor
+@Data
 @JsonIgnoreProperties
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class EmployerProfileDTO {
+public class SaveEmployeeDto {
     @Size(min = 3, max = 100)
     @NotEmpty(message = "First name cannot be null or empty")
     private String firstName;
@@ -30,29 +28,37 @@ public class EmployerProfileDTO {
     @NotEmpty(message = "Email address cannot be null or empty")
     private String emailAddress;
 
+    @NotEmpty(message = "Date of Birth cannot be null or empty")
+    private Date dateOfBirth;
+
+    @NotEmpty(message = "Street address cannot be null or empty")
+    private String streetAddress;
+
     @NotEmpty(message = "Phone number cannot be null or empty")
     @Pattern(regexp = "(^$|[0-9]{13})", message = "Phone number must be 13 digits")
     private String phoneNumber;
-
-    @NotEmpty(message = "Personal address cannot be null or empty")
-    private String personalAddress;
 
     @Size(min = 3, max = 100)
     @NotEmpty(message = "Job title cannot be null or empty")
     private String jobTitle;
 
+    @Size(min = 3, max = 100)
+    @NotEmpty(message = "Department cannot be null or empty")
+    private String department;
+
     @NotEmpty(message = "BVN cannot be null or empty")
-    @Pattern(regexp = "(^$|[0-9]{11})", message = "BVN must be 11 digits")
     private String bvn;
 
-    @Size(min = 8, message = "Password must be at least 8 characters long")
-    @NotEmpty(message = "Password cannot be null or empty")
-    @Pattern(
-            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
-            message = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
-    )
-    private String password;
+    @NotEmpty(message = "Bank Name cannot be null or empty")
+    private String bankName;
 
-    /* this profileId is needed for response only. The client wil save it and use it to make other CRUD operations */
-    private UUID employerProfileId;
+    @Pattern(regexp = "(^$|[0-9]{10})", message = "Bank account number must be 10 digits")
+    @NotEmpty(message = "Bank account number cannot be null or empty")
+    private String accountNumber;
+
+    @NotEmpty(message = "Amount of Salary cannot be null or empty")
+    private BigDecimal salaryAmount;
+
+    @NotEmpty(message = "Currency of Salary cannot be null or empty")
+    private SalaryCurrency salaryCurrency;
 }
