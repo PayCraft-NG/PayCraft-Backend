@@ -99,12 +99,16 @@ public class EmployerServiceImpl implements IEmployerService {
     }
 
     @Override
+    @Transactional
     public DefaultApiResponse<EmployerDTO> deleteEmployer(UUID employerId) {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
         Employer employer = verifyAndFetchById(employerId);
 
-        employerRepository.delete(employer);
-        //todo: foreign key delete
+        // Soft delete it is
+        // However, there is a bug that prevents recreating the exact same account after it has been deleted.
+        // It's not a bug, it's a feature, wink!
+        employer.setDeleted(true);
+        employerRepository.save(employer);
 
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
         response.setStatusMessage("Employer deleted successfully");
