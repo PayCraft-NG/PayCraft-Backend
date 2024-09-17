@@ -46,6 +46,6 @@ public class Company extends BaseEntity {
     private CompanyCurrency companyCurrency;
 
     @ManyToOne
-    @JoinColumn(name = "employerId", nullable = false)
+    @JoinColumn(name = "employerId", referencedColumnName = "employerId", nullable = false)
     private Employer employer;
 }
