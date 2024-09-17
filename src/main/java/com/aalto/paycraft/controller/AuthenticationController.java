@@ -1,7 +1,7 @@
-package com.aalto.paycraft.controllers;
+package com.aalto.paycraft.controller;
 
 import com.aalto.paycraft.dto.*;
-import com.aalto.paycraft.services.IAuthenticationService;
+import com.aalto.paycraft.service.IAuthenticationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

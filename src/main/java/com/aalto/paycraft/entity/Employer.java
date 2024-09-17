@@ -8,10 +8,12 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.sql.Types;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+@Builder
 @Entity
 @Getter
 @Setter
@@ -75,5 +77,17 @@ public class Employer extends BaseEntity implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean deleted = false;  // soft delete flag
+
+    @Column
+    private LocalDateTime deletedAt;
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+        this.deletedAt = deleted ? LocalDateTime.now() : null;  // Set timestamp when deleted
     }
 }
