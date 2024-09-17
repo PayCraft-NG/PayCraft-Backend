@@ -13,6 +13,8 @@ import com.aalto.paycraft.repository.CompanyRepository;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.service.ICompanyService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class CompanyServiceImpl implements ICompanyService {
+    private static final Logger log = LoggerFactory.getLogger(CompanyServiceImpl.class);
     private final CompanyRepository companyRepository;
     private final EmployerRepository employerRepository;
 
@@ -34,7 +37,9 @@ public class CompanyServiceImpl implements ICompanyService {
         Employer employer = verifyAndFetchEmployerById(employerId);
 
         Company company = CompanyMapper.toEntity(companyDTO);
-        company.setCompanyId(employerId);
+        company.setEmployer(employer);
+
+        log.info("Company {}", company);
         companyRepository.save(company);
 
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
@@ -62,7 +67,7 @@ public class CompanyServiceImpl implements ICompanyService {
     public DefaultApiResponse<CompanyDTO> getCompany(UUID companyId) {
         DefaultApiResponse<CompanyDTO> response = new DefaultApiResponse<>();
         Company company = verifyAndFetchCompanyById(companyId);
-        Employer employer = verifyAndFetchEmployerById(company.getCompanyId());
+        Employer employer = verifyAndFetchEmployerById(company.getEmployer().getEmployerId());
 
         CompanyDTO companyDTO = CompanyMapper.toDTO(company);
         companyDTO.setEmployerDTO(
@@ -85,7 +90,7 @@ public class CompanyServiceImpl implements ICompanyService {
         Employer employer = verifyAndFetchEmployerById(employerId);
         Pageable pageable = PageRequest.of(page, pageSize);
 
-        List<Company> companyList = companyRepository.findAllByEmployerId_EmployerId(employer.getEmployerId(), pageable);
+        List<Company> companyList = companyRepository.findAllByEmployer_EmployerId(employer.getEmployerId(), pageable);
 
         List<CompanyDTO> responseList = companyList.stream()
                 .map(company ->
@@ -96,7 +101,7 @@ public class CompanyServiceImpl implements ICompanyService {
                                 .companyCountry(company.getCompanyCountry())
                                 .companyEmailAddress(company.getCompanyEmailAddress())
                                 .companyPhoneNumber(company.getCompanyPhoneNumber())
-                                .companyCurrency(company.getCompanyCurrency())
+                                .companyStreetAddress(company.getCompanyStreetAddress())
                                 .companyCurrency(company.getCompanyCurrency())
                                 .employerDTO(
                                         EmployerDTO.builder()
@@ -128,6 +133,11 @@ public class CompanyServiceImpl implements ICompanyService {
                         .companyId(company.getCompanyId())
                         .companyPhoneNumber(company.getCompanyPhoneNumber())
                         .companyEmailAddress(company.getCompanyEmailAddress())
+                        .companyName(companyUpdateDTO.getCompanyName())
+                        .companySize(companyUpdateDTO.getCompanySize())
+                        .companyCountry(companyUpdateDTO.getCompanyCountry())
+                        .companyCurrency(companyUpdateDTO.getCompanyCurrency())
+                        .companyStreetAddress(companyUpdateDTO.getCompanyStreetAddress())
                         .build()
         );
         return response;
@@ -158,7 +168,7 @@ public class CompanyServiceImpl implements ICompanyService {
         if (companyUpdateDTO.getCompanySize() != null)
             company.setCompanySize(companyUpdateDTO.getCompanySize());
         if (companyUpdateDTO.getCompanyStreetAddress() != null)
-            company.setCompanySize(companyUpdateDTO.getCompanySize());
+            company.setCompanyStreetAddress(companyUpdateDTO.getCompanyStreetAddress());
         if (companyUpdateDTO.getCompanyCountry() != null)
             company.setCompanyCountry(companyUpdateDTO.getCompanyCountry());
         if (companyUpdateDTO.getCompanyCurrency() != null)

@@ -50,7 +50,7 @@ public class EmployerServiceImpl implements IEmployerService {
                         .employerId(employer.getEmployerId())
                         .firstName(employer.getFirstName())
                         .lastName(employer.getLastName())
-                        .emailAddress(employer.getPhoneNumber())
+                        .emailAddress(employer.getEmailAddress())
                         .build()
         );
         return response;
@@ -89,9 +89,10 @@ public class EmployerServiceImpl implements IEmployerService {
         // Only the employer ID and updated attributes are returned
         response.setData(EmployerDTO.builder()
                 .employerId(employer.getEmployerId())
+                .phoneNumber(employer.getPhoneNumber())
+                .emailAddress(employer.getEmailAddress())
                 .firstName(employerUpdateDTO.getFirstName())
                 .lastName(employerUpdateDTO.getLastName())
-                .phoneNumber(employerUpdateDTO.getPhoneNumber())
                 .jobTitle(employerUpdateDTO.getJobTitle())
                 .streetAddress(employerUpdateDTO.getStreetAddress())
                 .build());
