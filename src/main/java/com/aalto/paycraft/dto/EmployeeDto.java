@@ -1,54 +1,32 @@
 package com.aalto.paycraft.dto;
 
-import com.aalto.paycraft.dto.enums.EmploymentStatus;
-import com.aalto.paycraft.dto.enums.SalaryType;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import com.aalto.paycraft.dto.enums.SalaryCurrency;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Builder;
+import lombok.Data;
 
-import java.time.Instant;
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.UUID;
 
+@Data @Builder
+@JsonIgnoreProperties
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class EmployeeDto{
-    @Size(min = 3, max = 100)
-    @NotEmpty(message = "First name cannot be null or empty")
+    private UUID employeeId;
+    private UUID companyId;
     private String firstName;
-
-    @Size(min = 3, max = 100)
-    @NotEmpty(message = "Last name cannot be null or empty")
     private String lastName;
-
-    @Email(message = "Email address format is invalid")
-    @NotEmpty(message = "Email address cannot be null or empty")
     private String emailAddress;
-
-    @NotEmpty(message = "Personal address cannot be null or empty")
-    private String personalAddress;
-
-    @NotEmpty(message = "Phone number cannot be null or empty")
-    @Pattern(regexp = "(^$|[0-9]{13})", message = "Phone number must be 13 digits")
-    private String phoneNumber;
-
-    @NotEmpty(message = "Start date cannot be null or empty")
-    private Instant startDate;
-
-    @Size(min = 3, max = 100)
-    @NotEmpty(message = "Job title cannot be null or empty")
-    private String jobTitle;
-
-    @NotEmpty(message = "SalaryType cannot be null or empty")
-    private SalaryType salaryType;
-
-    @Pattern(regexp = "(^$|[0-9]{10})", message = "Bank account number must be 10 digits")
-    @NotEmpty(message = "Bank account number cannot be null or empty")
-    private String bankAccountNumber;
-
     private Date dateOfBirth;
-    private EmploymentStatus employmentStatus;
-    private Instant endDate;
+    private String streetAddress;
+    private String phoneNumber;
+    private String jobTitle;
     private String department;
-    private UUID employeeProfileId;
-    private UUID companyProfileId;
+    private String bvn;
+    private String bankName;
+    private String accountNumber;
+    private BigDecimal salaryAmount;
+    private SalaryCurrency salaryCurrency;
 }
