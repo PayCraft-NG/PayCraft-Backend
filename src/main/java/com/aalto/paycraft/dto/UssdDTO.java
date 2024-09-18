@@ -1,7 +1,9 @@
 package com.aalto.paycraft.dto;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.*;
 
+@Hidden
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
