@@ -1,6 +1,6 @@
 package com.aalto.paycraft.config;
 
-import com.aalto.paycraft.services.EmployerDetailService;
+import com.aalto.paycraft.service.EmployerDetailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

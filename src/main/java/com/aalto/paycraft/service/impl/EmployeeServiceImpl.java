@@ -1,16 +1,16 @@
-package com.aalto.paycraft.services.impl;
+package com.aalto.paycraft.service.impl;
 
 import com.aalto.paycraft.dto.DefaultApiResponse;
 import com.aalto.paycraft.dto.EmployeeDto;
 import com.aalto.paycraft.dto.SaveEmployeeDto;
-import com.aalto.paycraft.services.IEmployeeService;
+import com.aalto.paycraft.service.IEmployeeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
 @Service @RequiredArgsConstructor
-public class EmployeeService implements IEmployeeService {
+public class EmployeeServiceImpl implements IEmployeeService {
 
     @Override
     public DefaultApiResponse<EmployeeDto> createEmployeeProfile(SaveEmployeeDto requestBody, UUID companyId) {
