@@ -2,9 +2,11 @@ package com.aalto.paycraft.api;
 
 import com.aalto.paycraft.dto.UssdDTO;
 import com.aalto.paycraft.service.IUssdService;
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+@Hidden
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
