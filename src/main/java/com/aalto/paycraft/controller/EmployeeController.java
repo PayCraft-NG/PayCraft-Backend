@@ -1,4 +1,4 @@
-package com.aalto.paycraft.controllers;
+package com.aalto.paycraft.controller;
 
 import com.aalto.paycraft.dto.DefaultApiResponse;
 import com.aalto.paycraft.dto.EmployeeDto;

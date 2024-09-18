@@ -13,11 +13,13 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
-@Data @Builder
-@AllArgsConstructor @NoArgsConstructor
-@JsonIgnoreProperties
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class EmployerDto {
+public class EmployerDTO {
     @Size(min = 3, max = 100)
     @NotEmpty(message = "First name cannot be null or empty")
     private String firstName;
@@ -34,8 +36,8 @@ public class EmployerDto {
     @Pattern(regexp = "(^$|[0-9]{13})", message = "Phone number must be 13 digits")
     private String phoneNumber;
 
-    @NotEmpty(message = "Personal address cannot be null or empty")
-    private String personalAddress;
+    @NotEmpty(message = "Street address cannot be null or empty")
+    private String streetAddress;
 
     @Size(min = 3, max = 100)
     @NotEmpty(message = "Job title cannot be null or empty")

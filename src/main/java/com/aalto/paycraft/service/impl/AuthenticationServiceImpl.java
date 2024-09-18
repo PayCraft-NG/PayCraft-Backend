@@ -1,4 +1,4 @@
-package com.aalto.paycraft.services.impl;
+package com.aalto.paycraft.service.impl;
 
 import com.aalto.paycraft.dto.AuthorizationResponseDto;
 import com.aalto.paycraft.dto.DefaultApiResponse;
@@ -8,8 +8,8 @@ import com.aalto.paycraft.entity.AuthToken;
 import com.aalto.paycraft.entity.Employer;
 import com.aalto.paycraft.repository.AuthTokenRepository;
 import com.aalto.paycraft.repository.EmployerRepository;
-import com.aalto.paycraft.services.IAuthenticationService;
-import com.aalto.paycraft.services.JWTService;
+import com.aalto.paycraft.service.IAuthenticationService;
+import com.aalto.paycraft.service.JWTService;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,10 +44,10 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             LoginRequestDto.validate(requestBody);
 
             Employer employer;
-            Optional<Employer> employerProfileOpt = employerRepository.findByEmailAddress(requestBody.emailAddress());
+            Optional<Employer> employerOpt = employerRepository.findByEmailAddress(requestBody.emailAddress());
 
-            if(employerProfileOpt.isPresent()){
-                employer = employerProfileOpt.get();
+            if(employerOpt.isPresent()){
+                employer = employerOpt.get();
 
                 log.info("USER Found on the DB with emailAddress {}.", requestBody.emailAddress());
                 if(!passwordEncoder.matches(requestBody.password(), employer.getPassword())){

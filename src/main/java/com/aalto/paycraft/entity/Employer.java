@@ -8,17 +8,18 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.sql.Types;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-@Entity @Getter @Setter
-@AllArgsConstructor @NoArgsConstructor @ToString
+@Builder @Entity
+@Getter @Setter @AllArgsConstructor
+@NoArgsConstructor @ToString
 @Table(name = "Employer")
 public class Employer extends BaseEntity implements UserDetails {
 
-    @Id
-    @GeneratedValue
+    @Id @GeneratedValue
     @JdbcTypeCode(Types.VARCHAR)
     private UUID employerId;
 
@@ -35,7 +36,7 @@ public class Employer extends BaseEntity implements UserDetails {
     private String phoneNumber;
 
     @Column(nullable = false)
-    private String personalAddress;
+    private String streetAddress;
 
     @Column(nullable = false)
     private String jobTitle;
@@ -73,5 +74,17 @@ public class Employer extends BaseEntity implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean deleted = false;  // soft delete flag
+
+    @Column
+    private LocalDateTime deletedAt;
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+        this.deletedAt = deleted ? LocalDateTime.now() : null;  // Set timestamp when deleted
     }
 }

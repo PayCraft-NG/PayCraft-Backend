@@ -11,5 +11,5 @@ import java.util.UUID;
 @Repository
 public interface AuthTokenRepository extends JpaRepository<AuthToken, Long> {
     Optional<AuthToken> findByAccessToken(String authToken);
-    List<AuthToken> findAllByEmployerProfile_EmployerId(UUID employerProfileId);
+    List<AuthToken> findAllByEmployer_EmployerId(UUID employerId);
 }
