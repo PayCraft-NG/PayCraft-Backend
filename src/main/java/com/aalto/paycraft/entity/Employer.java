@@ -46,6 +46,9 @@ public class Employer extends BaseEntity implements UserDetails {
 
     private String password;
 
+    @OneToMany(mappedBy = "employer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Company> companies;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_USER"));

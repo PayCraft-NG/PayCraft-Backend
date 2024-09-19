@@ -109,7 +109,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
                 if(jwtService.isTokenValid(requestBody.refreshToken(), employer)){
                     log.info("Generating New Token for user {}.", userEmail);
 
-                    String newAccessToken = jwtService.createJWT(employer);
+                    String newAccessToken = jwtService.createJWT(employer, employer.getCompanies().get(0).getCompanyId());
                     String newRefreshToken = jwtService.generateRefreshToken(generateRefreshTokenClaims(employer), employer);
 
                     // Revoke old tokens and save the new tokens
@@ -139,7 +139,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         // Log the token generation process
         log.info("Generating Access Token and Refresh Token for USER");
 
-        String jwtToken = jwtService.createJWT(employer);
+        String jwtToken = jwtService.createJWT(employer, employer.getCompanies().get(0).getCompanyId());
         String refreshToken = jwtService.generateRefreshToken(generateRefreshTokenClaims(employer), employer);
 
         saveUserAccountToken(employer, jwtToken, refreshToken);
@@ -180,7 +180,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         log.info("Revoking old tokens for customer {}", employer.getEmailAddress());
 
         // Revoke all old tokens for the customer
-        List<AuthToken> validTokens = tokenRepository.findAllByEmployerProfile_EmployerId(employer.getEmployerId());
+        List<AuthToken> validTokens = tokenRepository.findAllByEmployer_EmployerId(employer.getEmployerId());
         if (validTokens.isEmpty()){
             log.info("No valid tokens found for customer {}.", employer.getEmailAddress());
             return;

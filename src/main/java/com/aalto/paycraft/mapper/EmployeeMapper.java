@@ -1,16 +1,8 @@
 package com.aalto.paycraft.mapper;
 
 import com.aalto.paycraft.dto.EmployeeDto;
-import com.aalto.paycraft.dto.enums.SalaryCurrency;
-import com.aalto.paycraft.entity.Company;
+import com.aalto.paycraft.dto.EmployeeRequestDto;
 import com.aalto.paycraft.entity.Employee;
-import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-
-import java.math.BigDecimal;
-import java.sql.Types;
-import java.util.Date;
-import java.util.UUID;
 
 public class EmployeeMapper {
 
@@ -31,7 +23,6 @@ public class EmployeeMapper {
                 .phoneNumber(employee.getPhoneNumber())
                 .jobTitle(employee.getJobTitle())
                 .department(employee.getDepartment())
-                .bvn(employee.getBvn())
                 .bankName(employee.getBankName())
                 .accountNumber(employee.getAccountNumber())
                 .salaryAmount(employee.getSalaryAmount())
@@ -39,12 +30,8 @@ public class EmployeeMapper {
                 .build();
     }
 
-    // Convert EmployeeDTO to Employee Entity
-    public static Employee toEntity(EmployeeDto employeeDto) {
-        if (employeeDto == null) {
-            return null;
-        }
-
+    public static Employee toEntity(EmployeeRequestDto employeeDto) {
+        if (employeeDto == null) return null;
         Employee employee = new Employee();
         employee.setFirstName(employeeDto.getFirstName());
         employee.setLastName(employeeDto.getLastName());
@@ -59,7 +46,6 @@ public class EmployeeMapper {
         employee.setAccountNumber(employeeDto.getAccountNumber());
         employee.setSalaryAmount(employeeDto.getSalaryAmount());
         employee.setSalaryCurrency(employeeDto.getSalaryCurrency());
-
         return employee;
     }
 }

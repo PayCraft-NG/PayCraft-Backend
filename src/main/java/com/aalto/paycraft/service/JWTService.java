@@ -1,23 +1,30 @@
 package com.aalto.paycraft.service;
 
+import com.aalto.paycraft.entity.Company;
 import com.aalto.paycraft.entity.Employer;
+import com.aalto.paycraft.repository.CompanyRepository;
+import com.aalto.paycraft.repository.EmployerRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Claims;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
+import java.util.*;
 import java.util.function.Function;
 
 @Service
+@RequiredArgsConstructor
 public class JWTService {
+
+    private final CompanyRepository companyRepository;
+    private final EmployerRepository employerRepository;
 
     // Fetch the secret string from the application properties file
     @Value("${secret-string}")
@@ -41,18 +48,33 @@ public class JWTService {
     }
 
     // Create a JWT token for an employer profile
-    public String createJWT(Employer employer) {
-        return generateToken(employer);
+    public String createJWT(Employer employer, UUID companyId) {
+        return generateToken(employer, companyId );
     }
 
     // Generate a JWT with claims from the Employer entity
-    private String generateToken(Employer employer) {
+    private String generateToken(Employer employer, UUID companyId) {
         HashMap<String, Object> claims = new HashMap<>();
+
+        UUID activeCompanyId =
+                companyId.toString().isEmpty() ?
+                        companyRepository.findAllByEmployer_EmployerId(
+                                employer.getEmployerId(),
+                                Pageable.ofSize(10)).get(0).getCompanyId()
+                        : companyId;
+        List<String> companyIds = new ArrayList<>();
+
+        for(Company company : employer.getCompanies()){
+            companyIds.add(company.getCompanyId().toString());
+        }
+
         claims.put("userID", employer.getEmployerId());
         claims.put("firstName", employer.getFirstName());
         claims.put("lastName", employer.getLastName());
         claims.put("email", employer.getEmailAddress());
         claims.put("phoneNumber", employer.getPhoneNumber());
+        claims.put("activeCompanyID", activeCompanyId);
+        claims.put("companyIds", companyIds);
 
         return Jwts.builder()
                 .claims(claims)
