@@ -1,21 +1,19 @@
 package com.aalto.paycraft.entity;
 
-import com.aalto.paycraft.dto.enumeration.Currency;
+import com.aalto.paycraft.dto.enums.Currency;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 
 import java.math.BigDecimal;
 import java.sql.Types;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
 
-@Entity
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-@ToString
+@Entity @Getter @Setter
+@AllArgsConstructor @NoArgsConstructor
+@ToString @Builder
 @Table(name = "Employee")
 public class Employee extends BaseEntity{
     @Id
@@ -67,4 +65,16 @@ public class Employee extends BaseEntity{
     @ManyToOne
     @JoinColumn(name = "companyId", nullable = false)
     private Company company;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean deleted = false;  // soft delete flag
+
+    @Column
+    private LocalDateTime deletedAt;
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+        this.deletedAt = deleted ? LocalDateTime.now() : null;  // Set timestamp when deleted
+    }
 }

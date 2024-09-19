@@ -13,15 +13,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-@Builder
-@Entity
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-@ToString
+@Builder @Entity
+@Getter @Setter @AllArgsConstructor
+@NoArgsConstructor @ToString
 @Table(name = "Employer")
 public class Employer extends BaseEntity implements UserDetails {
+
     @Id @GeneratedValue
     @JdbcTypeCode(Types.VARCHAR)
     private UUID employerId;
@@ -48,6 +45,9 @@ public class Employer extends BaseEntity implements UserDetails {
     private String bvn;
 
     private String password;
+
+    @OneToMany(mappedBy = "employer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Company> companies;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

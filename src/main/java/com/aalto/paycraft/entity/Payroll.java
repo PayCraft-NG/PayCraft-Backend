@@ -1,6 +1,6 @@
 package com.aalto.paycraft.entity;
 
-import com.aalto.paycraft.dto.enumeration.PaymentStatus;
+import com.aalto.paycraft.dto.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
