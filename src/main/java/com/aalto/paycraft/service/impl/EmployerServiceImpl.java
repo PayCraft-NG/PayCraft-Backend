@@ -11,13 +11,16 @@ import com.aalto.paycraft.exception.EmployerNotFound;
 import com.aalto.paycraft.exception.PasswordUpdateException;
 import com.aalto.paycraft.mapper.EmployerMapper;
 import com.aalto.paycraft.repository.EmployerRepository;
+import com.aalto.paycraft.service.IEmailService;
 import com.aalto.paycraft.service.IEmployerService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.thymeleaf.context.Context;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -28,6 +31,10 @@ public class EmployerServiceImpl implements IEmployerService {
     private static final Logger log = LoggerFactory.getLogger(EmployerServiceImpl.class);
     private final EmployerRepository employerRepository;
     private final PasswordEncoder passwordEncoder;
+    private final IEmailService emailService;
+
+    @Value("${spring.mail.enable}")
+    private Boolean enableEmail;
 
     @Override
     public DefaultApiResponse<EmployerDTO> createEmployer(EmployerDTO employerDTO) {
@@ -41,6 +48,11 @@ public class EmployerServiceImpl implements IEmployerService {
 
         // Save the employer profile
         employerRepository.save(employer);
+
+        log.info("===== EmailService status: {} =====", enableEmail);
+        if (enableEmail){
+            emailService.sendEmail(employer.getEmailAddress(), "Sign up Success!", createEmailContext(employer.getFirstName()), "signup");
+        }
 
         response.setStatusCode(PayCraftConstant.ONBOARD_SUCCESS);
         response.setStatusMessage("Employer created successfully");
@@ -200,4 +212,11 @@ public class EmployerServiceImpl implements IEmployerService {
             destEmployer.setPhoneNumber(srcEmployerDTO.getPhoneNumber());
         }
     }
+
+    private static Context createEmailContext(String firstName){
+        Context emailContext = new Context();
+        emailContext.setVariable("name", firstName);
+        return emailContext;
+    }
+
 }

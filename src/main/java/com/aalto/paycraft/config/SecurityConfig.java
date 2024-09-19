@@ -35,6 +35,9 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "api/v1/auth/**",
                                 "api/v1/employer/create",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "api/v1/ussd",
                                 "api/v1/company/create",
                                 "/error**").permitAll() // Permits all Users to access Authentication Endpoints
                         .anyRequest().authenticated()) // Every other Request has to be authenticated.
