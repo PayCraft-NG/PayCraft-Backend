@@ -2,13 +2,13 @@ package com.aalto.paycraft.service;
 
 import com.aalto.paycraft.dto.DefaultApiResponse;
 import com.aalto.paycraft.dto.EmployeeDto;
-import com.aalto.paycraft.dto.SaveEmployeeDto;
+import com.aalto.paycraft.dto.EmployeeRequestDto;
 
 import java.util.UUID;
 
 public interface IEmployeeService {
-    DefaultApiResponse<EmployeeDto> createEmployeeProfile(SaveEmployeeDto requestBody, UUID companyId);
-    DefaultApiResponse<EmployeeDto> getEmployeeProfile(UUID employeeId);
-    DefaultApiResponse<EmployeeDto> updateEmployeeProfile(EmployeeDto requestBody, UUID employeeId, UUID companyId);
-    DefaultApiResponse<EmployeeDto> deleteEmployeeProfile(UUID employeeId, UUID companyId);
+    DefaultApiResponse<EmployeeDto> createEmployee(EmployeeRequestDto requestBody);
+    DefaultApiResponse<EmployeeDto> getEmployee(String employeeId);
+    DefaultApiResponse<EmployeeDto> updateEmployee(EmployeeRequestDto requestBody, String employeeId);
+    DefaultApiResponse<EmployeeDto> deleteEmployee(String employeeId);
 }

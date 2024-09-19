@@ -1,21 +1,22 @@
 package com.aalto.paycraft.dto;
 
-import com.aalto.paycraft.dto.enums.SalaryCurrency;
+import com.aalto.paycraft.dto.enums.Currency;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.UUID;
 
-@Data
-@JsonIgnoreProperties
+@Data @Builder @NoArgsConstructor
+@AllArgsConstructor @JsonIgnoreProperties
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class SaveEmployeeDto {
+public class EmployeeRequestDto {
     @Size(min = 3, max = 100)
     @NotEmpty(message = "First name cannot be null or empty")
     private String firstName;
@@ -28,7 +29,7 @@ public class SaveEmployeeDto {
     @NotEmpty(message = "Email address cannot be null or empty")
     private String emailAddress;
 
-    @NotEmpty(message = "Date of Birth cannot be null or empty")
+    @NotNull(message = "Date of Birth cannot be null or empty")
     private Date dateOfBirth;
 
     @NotEmpty(message = "Street address cannot be null or empty")
@@ -56,9 +57,9 @@ public class SaveEmployeeDto {
     @NotEmpty(message = "Bank account number cannot be null or empty")
     private String accountNumber;
 
-    @NotEmpty(message = "Amount of Salary cannot be null or empty")
+    @NotNull(message = "Amount of Salary cannot be null or empty")
     private BigDecimal salaryAmount;
 
-    @NotEmpty(message = "Currency of Salary cannot be null or empty")
-    private SalaryCurrency salaryCurrency;
+    @NotNull(message = "Currency of Salary cannot be null or empty")
+    private Currency salaryCurrency;
 }
