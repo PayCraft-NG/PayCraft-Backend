@@ -43,14 +43,14 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             // Validate the login request data
             LoginRequestDto.validate(requestBody);
 
-            Employer employerProfile;
+            Employer employer;
             Optional<Employer> employerOpt = employerRepository.findByEmailAddress(requestBody.emailAddress());
 
             if(employerOpt.isPresent()){
-                employerProfile = employerOpt.get();
+                employer = employerOpt.get();
 
                 log.info("USER Found on the DB with emailAddress {}.", requestBody.emailAddress());
-                if(!passwordEncoder.matches(requestBody.password(), employerProfile.getPassword())){
+                if(!passwordEncoder.matches(requestBody.password(), employer.getPassword())){
                     log.warn("Invalid Password for USER {}.", requestBody.emailAddress());
                     response.setStatusCode(LOGIN_INVALID_CREDENTIALS);
                     response.setStatusMessage("Invalid Password");
@@ -64,7 +64,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             }
 
             // Generate access and refresh tokens for the authenticated customer
-            accessAndRefreshToken result = getGenerateAccessTokenAndRefreshToken(employerProfile);
+            accessAndRefreshToken result = getGenerateAccessTokenAndRefreshToken(employer);
 
             AuthorizationResponseDto authorisationResponseDto = new AuthorizationResponseDto(
                     result.accessToken(), result.refreshToken(), getLastUpdatedAt(), "1hr","24hrs");
@@ -109,7 +109,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
                 if(jwtService.isTokenValid(requestBody.refreshToken(), employer)){
                     log.info("Generating New Token for user {}.", userEmail);
 
-                    String newAccessToken = jwtService.createJWT(employer);
+                    String newAccessToken = jwtService.createJWT(employer, employer.getCompanies().get(0).getCompanyId());
                     String newRefreshToken = jwtService.generateRefreshToken(generateRefreshTokenClaims(employer), employer);
 
                     // Revoke old tokens and save the new tokens
@@ -139,7 +139,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         // Log the token generation process
         log.info("Generating Access Token and Refresh Token for USER");
 
-        String jwtToken = jwtService.createJWT(employer);
+        String jwtToken = jwtService.createJWT(employer, employer.getCompanies().get(0).getCompanyId());
         String refreshToken = jwtService.generateRefreshToken(generateRefreshTokenClaims(employer), employer);
 
         saveUserAccountToken(employer, jwtToken, refreshToken);

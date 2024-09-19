@@ -25,7 +25,7 @@ import java.util.UUID;
         description = "Schema to hold Employer Information"
 )
 public class EmployerDTO {
-
+    @Size(min = 3, max = 100)
     @Schema(
             description = "First name of the employer",
             example = "John"
@@ -93,6 +93,7 @@ public class EmployerDTO {
     )
     private String password;
 
+    /* this profileId is needed for response only. The client wil save it and use it to make other CRUD operations */
     @Schema(
             description = "Unique identifier of the employer",
             example = "d290f1ee-6c54-4b01-90e6-d701748f0851"

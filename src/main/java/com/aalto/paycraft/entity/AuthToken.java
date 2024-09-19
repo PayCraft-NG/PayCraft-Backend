@@ -12,10 +12,10 @@ public class AuthToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 500)
+    @Column(nullable = false, unique = true, length = 2048)
     private String accessToken;
 
-    @Column(nullable = false, unique = true, length = 500)
+    @Column(nullable = false, unique = true, length = 2048)
     private String refreshToken;
 
     @Builder.Default
