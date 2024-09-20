@@ -1,7 +1,7 @@
 package com.aalto.paycraft.entity;
 
 import com.aalto.paycraft.dto.enums.PaymentStatus;
-import com.aalto.paycraft.dto.enumeration.PayrollFrequency;
+import com.aalto.paycraft.dto.enums.PayrollFrequency;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -47,4 +47,7 @@ public class Payroll extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "companyId", referencedColumnName = "companyId", nullable = false)
     private Company company; // Reference to the company that owns this payroll
+
+    @OneToMany(mappedBy = "payroll", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Employee> employees; // List of employees associated with the payroll
 }

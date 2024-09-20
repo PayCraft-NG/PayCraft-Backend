@@ -1,7 +1,7 @@
 package com.aalto.paycraft.mapper;
 
 import com.aalto.paycraft.dto.PayrollDTO;
-import com.aalto.paycraft.dto.enumeration.PaymentStatus;
+import com.aalto.paycraft.dto.enums.PaymentStatus;
 import com.aalto.paycraft.entity.Payroll;
 
 
