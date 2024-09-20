@@ -50,11 +50,10 @@ public class EmployerController {
             responseCode = "200",
             description = "Employer details successfully retrieved"
     )
-    @GetMapping(value = "/{employerId}")
-    public ResponseEntity<DefaultApiResponse<EmployerDTO>> getEmployer(
-            @Valid @PathVariable("employerId") UUID employerId){
+    @GetMapping(value = "/details")
+    public ResponseEntity<DefaultApiResponse<EmployerDTO>> getEmployer(){
         return ResponseEntity.status(HttpStatus.OK)
-                .body(iEmployerService.getEmployer(employerId));
+                .body(iEmployerService.getEmployer());
     }
 
     @Operation(
@@ -65,12 +64,11 @@ public class EmployerController {
             responseCode = "200",
             description = "Employer details successfully updated"
     )
-    @PutMapping(value = "/update/{employerId}")
+    @PutMapping(value = "/update")
     public ResponseEntity<DefaultApiResponse<EmployerDTO>> updateEmployer(
-            @Valid @RequestBody EmployerUpdateDTO employerUpdateDTO,
-            @Valid @PathVariable("employerId") UUID employerId){
+            @Valid @RequestBody EmployerUpdateDTO employerUpdateDTO){
         return ResponseEntity.status(HttpStatus.OK)
-                .body(iEmployerService.updateEmployer(employerUpdateDTO, employerId));
+                .body(iEmployerService.updateEmployer(employerUpdateDTO));
     }
 
     @Operation(
@@ -81,11 +79,10 @@ public class EmployerController {
             responseCode = "200",
             description = "Employer successfully deleted"
     )
-    @DeleteMapping(value = "/delete/{employerId}")
-    public ResponseEntity<DefaultApiResponse<EmployerDTO>> deleteEmployer(
-            @Valid @PathVariable("employerId") UUID employerId){
+    @DeleteMapping(value = "/delete")
+    public ResponseEntity<DefaultApiResponse<EmployerDTO>> deleteEmployer(){
         return ResponseEntity.status(HttpStatus.OK)
-                .body(iEmployerService.deleteEmployer(employerId));
+                .body(iEmployerService.deleteEmployer());
     }
 
     @Operation(
@@ -96,11 +93,10 @@ public class EmployerController {
             responseCode = "200",
             description = "Employer password successfully updated"
     )
-    @PatchMapping(value = "/update/password/{employerId}")
+    @PatchMapping(value = "/update/password")
     public ResponseEntity<DefaultApiResponse<EmployerDTO>> updatePassword(
-            @Valid @RequestBody EmployerPasswordUpdateDTO employerPasswordUpdateDTO,
-            @Valid @PathVariable("employerId") UUID employerId){
+            @Valid @RequestBody EmployerPasswordUpdateDTO employerPasswordUpdateDTO){
         return ResponseEntity.status(HttpStatus.OK)
-                .body(iEmployerService.updateEmployerPassword(employerPasswordUpdateDTO, employerId));
+                .body(iEmployerService.updateEmployerPassword(employerPasswordUpdateDTO));
     }
 }
