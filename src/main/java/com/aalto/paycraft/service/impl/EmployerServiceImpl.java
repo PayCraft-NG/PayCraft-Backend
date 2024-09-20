@@ -13,6 +13,10 @@ import com.aalto.paycraft.mapper.EmployerMapper;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.service.IEmailService;
 import com.aalto.paycraft.service.IEmployerService;
+import com.aalto.paycraft.service.JWTService;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +28,7 @@ import org.thymeleaf.context.Context;
 
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +37,20 @@ public class EmployerServiceImpl implements IEmployerService {
     private final EmployerRepository employerRepository;
     private final PasswordEncoder passwordEncoder;
     private final IEmailService emailService;
+    private final JWTService jwtService;
+    private final HttpServletRequest request;
+
+    // Gets the AccessToken from the Request Sent
+    private String EMPLOYER_ACCESS_TOKEN(){
+        return request.getHeader("Authorization").substring(7);
+    }
+
+    // Get the ID of the employer making the request
+    private UUID EMPLOYER_ID(){
+        verifyTokenExpiration(EMPLOYER_ACCESS_TOKEN());
+        Claims claims = jwtService.extractClaims(EMPLOYER_ACCESS_TOKEN(), Function.identity());  // Function.identity() returns the same object
+        return UUID.fromString((String) claims.get("userID"));
+    }
 
     @Value("${spring.mail.enable}")
     private Boolean enableEmail;
@@ -70,9 +89,9 @@ public class EmployerServiceImpl implements IEmployerService {
     }
 
     @Override
-    public DefaultApiResponse<EmployerDTO> getEmployer(UUID employerId) {
+    public DefaultApiResponse<EmployerDTO> getEmployer() {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
-        Employer employer = verifyAndFetchById(employerId);
+        Employer employer = verifyAndFetchById(EMPLOYER_ID());
         EmployerDTO employerDTO = EmployerMapper.toDTO(employer);
         // Prevent the password and bvn from being returned
         employerDTO.setPassword(null);
@@ -86,9 +105,9 @@ public class EmployerServiceImpl implements IEmployerService {
 
     @Override
     @Transactional
-    public DefaultApiResponse<EmployerDTO> updateEmployer(EmployerUpdateDTO employerUpdateDTO, UUID employerId) {
+    public DefaultApiResponse<EmployerDTO> updateEmployer(EmployerUpdateDTO employerUpdateDTO) {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
-        Employer employer = verifyAndFetchById(employerId);
+        Employer employer = verifyAndFetchById(EMPLOYER_ID());
 
         log.info("Employer (before update): {}", employer);
         updateRecord(employer,employerUpdateDTO);
@@ -113,9 +132,9 @@ public class EmployerServiceImpl implements IEmployerService {
 
     @Override
     @Transactional
-    public DefaultApiResponse<EmployerDTO> deleteEmployer(UUID employerId) {
+    public DefaultApiResponse<EmployerDTO> deleteEmployer() {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
-        Employer employer = verifyAndFetchById(employerId);
+        Employer employer = verifyAndFetchById(EMPLOYER_ID());
 
         // Soft delete it is
         // However, there is a bug that prevents recreating the exact same account after it has been deleted.
@@ -136,9 +155,9 @@ public class EmployerServiceImpl implements IEmployerService {
 
     @Override
     @Transactional
-    public DefaultApiResponse<EmployerDTO> updateEmployerPassword(EmployerPasswordUpdateDTO employerPasswordUpdateDTO, UUID employerId) {
+    public DefaultApiResponse<EmployerDTO> updateEmployerPassword(EmployerPasswordUpdateDTO employerPasswordUpdateDTO) {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
-        Employer employer = verifyAndFetchById(employerId);
+        Employer employer = verifyAndFetchById(EMPLOYER_ID());
 
         if(Objects.equals(employerPasswordUpdateDTO.getOldPassword(), employerPasswordUpdateDTO.getNewPassword()))
             throw new PasswordUpdateException("New password must be different from the old password");
@@ -217,6 +236,14 @@ public class EmployerServiceImpl implements IEmployerService {
         Context emailContext = new Context();
         emailContext.setVariable("name", firstName);
         return emailContext;
+    }
+
+    /* Method to Verify Token Expiration */
+    private void verifyTokenExpiration(String token) {
+        if (jwtService.isTokenExpired(token)) {
+            log.warn("Token has expired");
+            throw new ExpiredJwtException(null, null, "Access Token has expired");
+        }
     }
 
 }
