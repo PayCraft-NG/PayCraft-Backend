@@ -2,4 +2,4 @@ spring:
   application:
     name: PayCraft
   profiles:
-    active: qa
+    active: prod

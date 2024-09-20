@@ -1,13 +1,15 @@
 package com.aalto.paycraft.entity;
 
 import com.aalto.paycraft.dto.enums.PaymentStatus;
+import com.aalto.paycraft.dto.enumeration.PayrollFrequency;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
-import java.sql.Types;
-import java.util.UUID;
 import java.math.BigDecimal;
+import java.sql.Types;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 
 @Builder
 @Entity
@@ -17,27 +19,26 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @ToString
 @Table(name = "Payroll")
-public class Payroll {
+public class Payroll extends BaseEntity {
 
     @Id
     @GeneratedValue
     @JdbcTypeCode(Types.VARCHAR)
-    private UUID payrollId;
+    private UUID payrollId; // The unique identifier for the payroll
 
     @Column(nullable = false)
-    private LocalDate payPeriodStart;
+    private Boolean automatic; // Indicates if the payroll is automatic
 
-    @Column(nullable = false)
-    private LocalDate payPeriodEnd;
+    private BigDecimal totalSalary; // The total salary for the payroll run (can be manually set)
 
-    @Column(nullable = false)
-    private BigDecimal grossSalary;
+    private LocalDate lastRunDate; // The date to run the payroll (can be null if manually run)
 
-    @Column(nullable = false)
-    private BigDecimal netSalary;
+    private LocalDate payPeriodStart; // Start date of the pay period (optional for manual handling)
 
-    @Column(nullable = false)
-    private LocalDate paymentDate;
+    private LocalDate payPeriodEnd; // End date of the pay period (optional for manual handling)
+
+    @Enumerated(EnumType.STRING)
+    private PayrollFrequency frequency; // The frequency of payroll execution (optional if manual)
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -45,5 +46,5 @@ public class Payroll {
 
     @ManyToOne
     @JoinColumn(name = "companyId", referencedColumnName = "companyId", nullable = false)
-    private Company company;
+    private Company company; // Reference to the company that owns this payroll
 }
