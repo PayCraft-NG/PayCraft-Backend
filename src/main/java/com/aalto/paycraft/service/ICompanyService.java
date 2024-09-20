@@ -9,8 +9,8 @@ import java.util.UUID;
 
 public interface ICompanyService {
     DefaultApiResponse<CompanyDTO> createCompany(CompanyDTO companyDTO, UUID employerId);
-    DefaultApiResponse<CompanyDTO> getCompany(UUID companyId);
-    DefaultApiResponse<List<CompanyDTO>> getCompaniesByEmployerId(UUID employerId, Integer page, Integer pageSize);
-    DefaultApiResponse<CompanyDTO> updateCompany(CompanyUpdateDTO companyUpdateDTO, UUID companyId);
-    DefaultApiResponse<CompanyDTO> deleteCompany(UUID companyId);
+    DefaultApiResponse<CompanyDTO> getCompany();
+    DefaultApiResponse<List<CompanyDTO>> getCompaniesByEmployerId(Integer page, Integer pageSize);
+    DefaultApiResponse<CompanyDTO> updateCompany(CompanyUpdateDTO companyUpdateDTO);
+    DefaultApiResponse<CompanyDTO> deleteCompany();
 }
