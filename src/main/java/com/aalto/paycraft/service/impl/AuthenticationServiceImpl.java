@@ -10,6 +10,7 @@ import com.aalto.paycraft.repository.AuthTokenRepository;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.service.IAuthenticationService;
 import com.aalto.paycraft.service.JWTService;
+import io.jsonwebtoken.Claims;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,8 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Function;
 
 import static com.aalto.paycraft.constants.PayCraftConstant.*;
 
@@ -139,7 +142,32 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         // Log the token generation process
         log.info("Generating Access Token and Refresh Token for USER");
 
-        String jwtToken = jwtService.createJWT(employer, employer.getCompanies().get(0).getCompanyId());
+        UUID companyId;
+
+        AuthToken authToken;
+        Optional<AuthToken> authTokenOpt = tokenRepository.findFirstByEmployer_EmployerIdOrderByCreatedAtDesc(employer.getEmployerId());
+        if (authTokenOpt.isPresent()) {
+            authToken = authTokenOpt.get();
+
+            // Extract company ID from the last token's claims if present
+            Claims tokenClaims = jwtService.extractClaims(authToken.getAccessToken(), Function.identity());
+            String lastCompanyId = (String) tokenClaims.get("activeCompanyID");
+
+            if (lastCompanyId != null && !lastCompanyId.isEmpty()) {
+                companyId = UUID.fromString(lastCompanyId);
+                log.info("Found last active company ID from the previous token: {}", companyId);
+            } else {
+                // If no valid company ID in token, use the first company in employer's company list
+                companyId = employer.getCompanies().get(0).getCompanyId();
+                log.info("No company ID found in previous token, using first company from employer's company list: {}", companyId);
+            }
+        } else {
+            // If no previous token, use the first company in employer's company list
+            companyId = employer.getCompanies().get(0).getCompanyId();
+            log.info("No previous token found, using first company from employer's company list: {}", companyId);
+        }
+
+        String jwtToken = jwtService.createJWT(employer, companyId);
         String refreshToken = jwtService.generateRefreshToken(generateRefreshTokenClaims(employer), employer);
 
         saveUserAccountToken(employer, jwtToken, refreshToken);
