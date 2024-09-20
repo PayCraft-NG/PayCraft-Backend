@@ -48,6 +48,6 @@ public class Payroll extends BaseEntity {
     @JoinColumn(name = "companyId", referencedColumnName = "companyId", nullable = false)
     private Company company; // Reference to the company that owns this payroll
 
-    @OneToMany(mappedBy = "payroll", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "payroll", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Employee> employees; // List of employees associated with the payroll
 }
