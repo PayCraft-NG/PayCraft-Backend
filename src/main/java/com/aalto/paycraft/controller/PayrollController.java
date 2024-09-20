@@ -1,7 +1,9 @@
 package com.aalto.paycraft.controller;
 
 import com.aalto.paycraft.dto.DefaultApiResponse;
+import com.aalto.paycraft.dto.EmployeeDto;
 import com.aalto.paycraft.dto.PayrollDTO;
+import com.aalto.paycraft.dto.PayrollUpdateDTO;
 import com.aalto.paycraft.service.IPayrollService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -54,11 +57,11 @@ public class PayrollController {
     }
 
     @GetMapping(value = "/employees/{payrollId}")
-    public ResponseEntity<DefaultApiResponse<PayrollDTO>> getEmployeeByPayrollId(
+    public ResponseEntity<DefaultApiResponse<List<EmployeeDto>>> getEmployeesByPayrollId(
             @Valid @PathVariable("payrollId") UUID payrollId
     ){
         return ResponseEntity.status(HttpStatus.OK)
-                .body(iPayrollService.getEmployeeByPayrollId(payrollId));
+                .body(iPayrollService.getEmployeesByPayrollId(payrollId));
     }
 
     @GetMapping(value = "/{payrollId}")
@@ -71,8 +74,10 @@ public class PayrollController {
 
     @PutMapping(value = "/update/{payrollId}")
     public ResponseEntity<DefaultApiResponse<PayrollDTO>> updatePayroll(
-            @Valid
-            @Valid @PathVariable("payrollId") UUID payroll
-    )
-    )
+            @Valid @RequestBody PayrollUpdateDTO payrollUpdateDTO,
+            @Valid @PathVariable("payrollId") UUID payrollId
+    ){
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(iPayrollService.updatePayroll(payrollUpdateDTO, payrollId));
+    }
 }

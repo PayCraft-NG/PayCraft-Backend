@@ -1,8 +1,8 @@
 package com.aalto.paycraft.dto;
 
-import com.aalto.paycraft.dto.enumeration.PaymentStatus;
-import com.aalto.paycraft.dto.enumeration.PayrollFrequency;
-import com.aalto.paycraft.entity.Company;
+import com.aalto.paycraft.dto.enums.PaymentStatus;
+import com.aalto.paycraft.dto.enums.PayrollFrequency;
+import com.aalto.paycraft.entity.Employee;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.DecimalMin;
@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -43,4 +44,6 @@ public class PayrollDTO {
     private PaymentStatus paymentStatus; // Required, status of the payroll
 
     private CompanyDTO companyDTO; // reference to the associated company
+
+    private List<EmployeeDto> employees;
 }
