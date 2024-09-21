@@ -14,20 +14,49 @@ import com.aalto.paycraft.repository.EmployeeRepository;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.repository.PayrollRepository;
 import com.aalto.paycraft.service.IPayrollService;
+import com.aalto.paycraft.service.JWTService;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
 public class PayrollServiceImpl implements IPayrollService {
+    private static final Logger log = LoggerFactory.getLogger(PayrollServiceImpl.class);
     private final PayrollRepository payrollRepository;
     private final CompanyRepository companyRepository;
     private final EmployeeRepository employeeRepository;
+    private final JWTService jwtService;
+    private final HttpServletRequest request;
+
+    // Gets the AccessToken from the Request Sent
+    private String ACCESS_TOKEN(){
+        return request.getHeader("Authorization").substring(7);
+    }
+
+    // Get the ID of the employer making the request
+    private UUID EMPLOYER_ID(){
+        verifyTokenExpiration(ACCESS_TOKEN());
+        Claims claims = jwtService.extractClaims(ACCESS_TOKEN(), Function.identity());  // Function.identity() returns the same object
+        return UUID.fromString((String) claims.get("userID"));
+    }
+
+    // Get the ID of the company making the request
+    private UUID COMPANY_ID(){
+        verifyTokenExpiration(ACCESS_TOKEN());
+        Claims claims = jwtService.extractClaims(ACCESS_TOKEN(), Function.identity());  // Function.identity() returns the same object
+        return UUID.fromString((String) claims.get("activeCompanyID"));
+    }
 
     @Override
     public DefaultApiResponse<PayrollDTO> createPayroll(PayrollDTO payrollDTO, UUID companyId) {
@@ -36,6 +65,9 @@ public class PayrollServiceImpl implements IPayrollService {
         // Check if payroll is automatic
         if (payrollDTO.getAutomatic() != null && payrollDTO.getAutomatic())
             payrollDTO.setLastRunDate(LocalDate.now()); // Set runDate as now (this would be the last run date)
+
+        log.info("companyID from token: {}", COMPANY_ID());
+        log.info("companyID from path: {}", COMPANY_ID());
 
         Company company = verifyAndFetchCompanyById(companyId);
         payrollDTO.setCompanyDTO(CompanyMapper.toDTO(company));
@@ -220,6 +252,14 @@ public class PayrollServiceImpl implements IPayrollService {
         if(payrollUpdateDTO.getFrequency() != null)
             payroll.setFrequency(payrollUpdateDTO.getFrequency());
         return payroll;
+    }
+
+    /* Method to Verify Token Expiration */
+    private void verifyTokenExpiration(String token) {
+        if (jwtService.isTokenExpired(token)) {
+            log.warn("Token has expired");
+            throw new ExpiredJwtException(null, null, "Access Token has expired");
+        }
     }
 }
 
