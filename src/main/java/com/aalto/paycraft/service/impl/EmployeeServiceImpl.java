@@ -30,20 +30,20 @@ public class EmployeeServiceImpl implements IEmployeeService {
     private final CompanyRepository companyRepository;
 
     // Gets the AccessToken from the Request Sent
-    private String CUSTOMER_ACCESS_TOKEN(){
+    private String EMPLOYER_ACCESS_TOKEN(){
         return request.getHeader("Authorization").substring(7);
     }
 
     // Get the current company the employee is being created under
     private UUID COMPANY_ID(){
-        verifyTokenExpiration(CUSTOMER_ACCESS_TOKEN());
-        Claims claims = jwtService.extractClaims(CUSTOMER_ACCESS_TOKEN(), Function.identity());  // Function.identity() returns the same object
+        verifyTokenExpiration(EMPLOYER_ACCESS_TOKEN());
+        Claims claims = jwtService.extractClaims(EMPLOYER_ACCESS_TOKEN(), Function.identity());  // Function.identity() returns the same object
         return UUID.fromString((String) claims.get("activeCompanyID"));
     }
 
     @Override
     public DefaultApiResponse<EmployeeDto> createEmployee(EmployeeRequestDto requestBody) {
-        verifyTokenExpiration(CUSTOMER_ACCESS_TOKEN());
+        verifyTokenExpiration(EMPLOYER_ACCESS_TOKEN());
         DefaultApiResponse<EmployeeDto> response = new DefaultApiResponse<>();
 
         // Verify if the record already exists
@@ -71,7 +71,7 @@ public class EmployeeServiceImpl implements IEmployeeService {
         DefaultApiResponse<EmployeeDto> response = new DefaultApiResponse<>();
 
         // Fetch employee profile or throw exception if not found
-        Employee employee= employeeRepository.findById(UUID.fromString(employeeId))
+        Employee employee = employeeRepository.findByEmployeeId(UUID.fromString(employeeId))
                 .orElseThrow(() -> new RuntimeException("Employee Profile Id doesn't exist"));
 
         // Map the entity to DTO
