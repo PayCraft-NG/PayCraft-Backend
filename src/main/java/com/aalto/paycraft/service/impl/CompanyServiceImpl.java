@@ -12,6 +12,10 @@ import com.aalto.paycraft.mapper.CompanyMapper;
 import com.aalto.paycraft.repository.CompanyRepository;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.service.ICompanyService;
+import com.aalto.paycraft.service.JWTService;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +33,20 @@ public class CompanyServiceImpl implements ICompanyService {
     private static final Logger log = LoggerFactory.getLogger(CompanyServiceImpl.class);
     private final CompanyRepository companyRepository;
     private final EmployerRepository employerRepository;
+    private final JWTService jwtService;
+    private final HttpServletRequest request;
+
+    // Gets the AccessToken from the Request Sent
+    private String EMPLOYER_ACCESS_TOKEN(){
+        return request.getHeader("Authorization").substring(7);
+    }
+
+    // Get the ID of the employer making the request
+    private UUID GET_ID(String parameter){
+        verifyTokenExpiration(EMPLOYER_ACCESS_TOKEN());
+        Claims claims = jwtService.extractClaims(EMPLOYER_ACCESS_TOKEN(), Function.identity());  // Function.identity() returns the same object
+        return UUID.fromString((String) claims.get(parameter));
+    }
 
     @Override
     public DefaultApiResponse<CompanyDTO> createCompany(CompanyDTO companyDTO, UUID employerId) {
@@ -64,9 +83,9 @@ public class CompanyServiceImpl implements ICompanyService {
     }
 
     @Override
-    public DefaultApiResponse<CompanyDTO> getCompany(UUID companyId) {
+    public DefaultApiResponse<CompanyDTO> getCompany() {
         DefaultApiResponse<CompanyDTO> response = new DefaultApiResponse<>();
-        Company company = verifyAndFetchCompanyById(companyId);
+        Company company = verifyAndFetchCompanyById(GET_ID("activeCompanyID"));
         Employer employer = verifyAndFetchEmployerById(company.getEmployer().getEmployerId());
 
         CompanyDTO companyDTO = CompanyMapper.toDTO(company);
@@ -85,9 +104,9 @@ public class CompanyServiceImpl implements ICompanyService {
     }
 
     @Override
-    public DefaultApiResponse<List<CompanyDTO>> getCompaniesByEmployerId(UUID employerId, Integer page, Integer pageSize) {
+    public DefaultApiResponse<List<CompanyDTO>> getCompaniesByEmployerId(Integer page, Integer pageSize) {
         DefaultApiResponse<List<CompanyDTO>> response = new DefaultApiResponse<>();
-        Employer employer = verifyAndFetchEmployerById(employerId);
+        Employer employer = verifyAndFetchEmployerById(GET_ID("userID"));
         Pageable pageable = PageRequest.of(page, pageSize);
 
         List<Company> companyList = companyRepository.findAllByEmployer_EmployerId(employer.getEmployerId(), pageable);
@@ -120,9 +139,9 @@ public class CompanyServiceImpl implements ICompanyService {
     }
 
     @Override
-    public DefaultApiResponse<CompanyDTO> updateCompany(CompanyUpdateDTO companyUpdateDTO, UUID companyId) {
+    public DefaultApiResponse<CompanyDTO> updateCompany(CompanyUpdateDTO companyUpdateDTO) {
         DefaultApiResponse<CompanyDTO> response = new DefaultApiResponse<>();
-        Company company = verifyAndFetchCompanyById(companyId);
+        Company company = verifyAndFetchCompanyById(GET_ID("activeCompanyID"));
 
         companyRepository.save(updateCompanyRecord(company, companyUpdateDTO));
 
@@ -144,9 +163,9 @@ public class CompanyServiceImpl implements ICompanyService {
     }
 
     @Override
-    public DefaultApiResponse<CompanyDTO> deleteCompany(UUID companyId) {
+    public DefaultApiResponse<CompanyDTO> deleteCompany() {
         DefaultApiResponse<CompanyDTO> response = new DefaultApiResponse<>();
-        Company company = verifyAndFetchCompanyById(companyId);
+        Company company = verifyAndFetchCompanyById(GET_ID("activeCompanyID"));
 
         companyRepository.delete(company);
 
@@ -203,5 +222,13 @@ public class CompanyServiceImpl implements ICompanyService {
         return employerRepository.findById(employerId).orElseThrow(
                 () -> new RuntimeException("Employer ID does not exist: " + employerId)
         );
+    }
+
+    /* Method to Verify Token Expiration */
+    private void verifyTokenExpiration(String token) {
+        if (jwtService.isTokenExpired(token)) {
+            log.warn("Token has expired");
+            throw new ExpiredJwtException(null, null, "Access Token has expired");
+        }
     }
 }

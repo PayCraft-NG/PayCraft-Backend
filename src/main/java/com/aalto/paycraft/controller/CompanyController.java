@@ -51,11 +51,10 @@ public class CompanyController {
             responseCode = "200",
             description = "HTTP Status OK"
     )
-    @GetMapping(value = "/{companyId}")
-    public ResponseEntity<DefaultApiResponse<CompanyDTO>> getCompany(
-            @Valid @PathVariable("companyId") UUID companyId){
+    @GetMapping(value = "/details")
+    public ResponseEntity<DefaultApiResponse<CompanyDTO>> getCompany(){
         return ResponseEntity.status(HttpStatus.OK)
-                .body(iCompanyService.getCompany(companyId));
+                .body(iCompanyService.getCompany());
     }
 
     @Operation(
@@ -68,11 +67,10 @@ public class CompanyController {
     )
     @GetMapping(value = "/companies")
     public ResponseEntity<DefaultApiResponse<List<CompanyDTO>>> getCompaniesByEmployerId(
-            @Valid @RequestParam("employerId") UUID employerId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size){
         return ResponseEntity.status(HttpStatus.OK)
-                .body(iCompanyService.getCompaniesByEmployerId(employerId, page, size));
+                .body(iCompanyService.getCompaniesByEmployerId(page, size));
     }
 
     @Operation(
@@ -83,12 +81,11 @@ public class CompanyController {
             responseCode = "200",
             description = "HTTP Status OK"
     )
-    @PutMapping(value = "/update/{companyId}")
+    @PutMapping(value = "/update")
     public ResponseEntity<DefaultApiResponse<CompanyDTO>> updateCompany(
-            @Valid @RequestBody CompanyUpdateDTO companyUpdateDTO,
-            @Valid @PathVariable("companyId") UUID companyId){
+            @Valid @RequestBody CompanyUpdateDTO companyUpdateDTO){
         return ResponseEntity.status(HttpStatus.OK)
-                .body(iCompanyService.updateCompany(companyUpdateDTO, companyId));
+                .body(iCompanyService.updateCompany(companyUpdateDTO));
     }
 
     @Operation(
@@ -99,10 +96,9 @@ public class CompanyController {
             responseCode = "200",
             description = "HTTP Status OK"
     )
-    @DeleteMapping(value = "/delete/{companyId}")
-    public ResponseEntity<DefaultApiResponse<CompanyDTO>> deleteCompany(
-            @Valid @PathVariable("companyId") UUID companyId){
+    @DeleteMapping(value = "/delete")
+    public ResponseEntity<DefaultApiResponse<CompanyDTO>> deleteCompany(){
         return ResponseEntity.status(HttpStatus.OK)
-                .body(iCompanyService.deleteCompany(companyId));
+                .body(iCompanyService.deleteCompany());
     }
 }
