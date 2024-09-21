@@ -10,6 +10,12 @@ import java.util.UUID;
 
 @Repository
 public interface AuthTokenRepository extends JpaRepository<AuthToken, Long> {
+
     Optional<AuthToken> findByAccessToken(String authToken);
+
+    // List all Tokens belonging to that Employer
     List<AuthToken> findAllByEmployer_EmployerId(UUID employerId);
+
+    // Find the Last Generated Token for the Employer
+    Optional<AuthToken> findFirstByEmployer_EmployerIdOrderByCreatedAtDesc(UUID employerId);
 }
