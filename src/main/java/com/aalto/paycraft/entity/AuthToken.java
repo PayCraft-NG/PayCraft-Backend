@@ -3,6 +3,9 @@ package com.aalto.paycraft.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 @Entity @Getter @Setter @Builder
 @NoArgsConstructor @AllArgsConstructor
@@ -25,6 +28,10 @@ public class AuthToken {
     @Builder.Default
     @Column(nullable = false)
     private Boolean revoked = false;
+
+    @CreationTimestamp
+    @Column(updatable = false)  // This ensures the createdAt field is only set once during creation
+    private LocalDateTime createdAt;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
