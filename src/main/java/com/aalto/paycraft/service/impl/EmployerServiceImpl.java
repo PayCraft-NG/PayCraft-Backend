@@ -108,11 +108,7 @@ public class EmployerServiceImpl implements IEmployerService {
     public DefaultApiResponse<EmployerDTO> updateEmployer(EmployerUpdateDTO employerUpdateDTO) {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
         Employer employer = verifyAndFetchById(EMPLOYER_ID());
-
-        log.info("Employer (before update): {}", employer);
         updateRecord(employer,employerUpdateDTO);
-
-        log.info("Employer (after update): {}", employer);
         employerRepository.save(employer);
 
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
