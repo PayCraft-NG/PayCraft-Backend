@@ -19,3 +19,7 @@ spring:
     name: PayCraft
   profiles:
     active: qa
+
+payroll:
+  job:
+    fixedRate: 300000
