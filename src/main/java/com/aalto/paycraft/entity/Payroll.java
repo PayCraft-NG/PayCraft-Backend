@@ -39,8 +39,13 @@ public class Payroll extends BaseEntity {
 
     private LocalDate payPeriodEnd; // End date of the pay period (optional for manual handling)
 
-    @Builder.Default
-    private List<UUID> employees = new ArrayList<>(); // List of employees associated with the payroll
+    @ManyToMany
+    @JoinTable(
+            name = "payroll_employee", // Name of the join table
+            joinColumns = @JoinColumn(name = "payrollId"), // Join column for Payroll
+            inverseJoinColumns = @JoinColumn(name = "employeeId") // Join column for Employee
+    )
+    private List<Employee> employees = new ArrayList<>(); // List of employees associated with the payroll
 
     @Enumerated(EnumType.STRING)
     private PayrollFrequency frequency; // The frequency of payroll execution (optional if manual)
