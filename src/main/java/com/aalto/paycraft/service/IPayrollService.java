@@ -9,8 +9,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface IPayrollService {
-    DefaultApiResponse<PayrollDTO> createPayroll(PayrollDTO payrollDTO, UUID companyId);
-    DefaultApiResponse<PayrollDTO> deletePayroll(UUID payrollId, UUID companyId);
+    DefaultApiResponse<PayrollDTO> createPayroll(PayrollDTO payrollDTO);
+    DefaultApiResponse<PayrollDTO> deletePayroll(UUID payrollId);
     DefaultApiResponse<PayrollDTO> addEmployee(UUID payrollId, UUID employeeId);
     DefaultApiResponse<PayrollDTO> removeEmployee(UUID payrollId, UUID employeeId);
     DefaultApiResponse<List<EmployeeDto>> getEmployeesByPayrollId(UUID payrollId);

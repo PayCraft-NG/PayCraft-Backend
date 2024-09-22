@@ -66,10 +66,6 @@ public class Employee extends BaseEntity{
     @JoinColumn(name = "companyId", nullable = false)
     private Company company;
 
-    @ManyToOne
-    @JoinColumn(name = "payrollId")
-    private Payroll payroll;
-
     @Builder.Default
     @Column(nullable = false)
     private boolean deleted = false;  // soft delete flag

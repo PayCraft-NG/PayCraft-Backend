@@ -8,6 +8,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import java.math.BigDecimal;
 import java.sql.Types;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,8 +27,9 @@ public class Payroll extends BaseEntity {
     @JdbcTypeCode(Types.VARCHAR)
     private UUID payrollId; // The unique identifier for the payroll
 
+    @Builder.Default
     @Column(nullable = false)
-    private Boolean automatic; // Indicates if the payroll is automatic
+    private Boolean automatic = false; // Indicates if the payroll is automatic
 
     private BigDecimal totalSalary; // The total salary for the payroll run (can be manually set)
 
@@ -36,6 +38,9 @@ public class Payroll extends BaseEntity {
     private LocalDate payPeriodStart; // Start date of the pay period (optional for manual handling)
 
     private LocalDate payPeriodEnd; // End date of the pay period (optional for manual handling)
+
+    @Builder.Default
+    private List<UUID> employees = new ArrayList<>(); // List of employees associated with the payroll
 
     @Enumerated(EnumType.STRING)
     private PayrollFrequency frequency; // The frequency of payroll execution (optional if manual)
@@ -48,6 +53,4 @@ public class Payroll extends BaseEntity {
     @JoinColumn(name = "companyId", referencedColumnName = "companyId", nullable = false)
     private Company company; // Reference to the company that owns this payroll
 
-    @OneToMany(mappedBy = "payroll", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Employee> employees; // List of employees associated with the payroll
 }
