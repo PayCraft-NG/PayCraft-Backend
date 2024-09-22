@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -108,24 +109,26 @@ public class PayrollServiceImpl implements IPayrollService {
     @Override
     public DefaultApiResponse<PayrollDTO> addEmployee(UUID payrollId, UUID employeeId) {
         DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
+
         Payroll payroll = verifyAndFetchPayrollById(payrollId);
         Employee employee = verifyAndFetchEmployeeById(employeeId);
 
-        List<UUID> employeeList = new ArrayList<>(payroll.getEmployees()); // Ensure list is mutable
+        if (payroll.getEmployees().contains(employee))
+            throw new RuntimeException("Employee with ID " + employee.getEmployeeId() + " already on payroll: " + payroll.getPayrollId()); // Use custom exception
 
-        if (employeeList.contains(employee.getEmployeeId()))
-            throw new RuntimeException("Employee already on payroll: " + payroll.getPayrollId()); // Use custom exception
-
-        employeeList.add(employee.getEmployeeId());
-        payroll.setEmployees(employeeList);
+        payroll.getEmployees().add(employee);
         payrollRepository.save(payroll);
+
+        List<UUID> employees = payroll.getEmployees().stream()
+                .map(Employee::getEmployeeId)
+                .toList();
 
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
         response.setStatusMessage("Employee added to payroll");
         response.setData(
                 PayrollDTO.builder()
                         .payrollId(payroll.getPayrollId())
-                        .employees(employeeList)
+                        .employees(employees)
                         .build()
         );
         return response;
@@ -135,15 +138,13 @@ public class PayrollServiceImpl implements IPayrollService {
     @Override
     public DefaultApiResponse<PayrollDTO> removeEmployee(UUID payrollId, UUID employeeId) {
         DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
+
         Payroll payroll = verifyAndFetchPayrollById(payrollId);
         Employee employee = verifyAndFetchEmployeeById(employeeId);
 
-        List<UUID> employeeList = new ArrayList<>(payroll.getEmployees());
-
-        if (!employeeList.remove(employee.getEmployeeId()))
+        if (!payroll.getEmployees().remove(employee))
             throw new RuntimeException("Employee not on payroll: " + payroll.getPayrollId()); // Custom exception
 
-        payroll.setEmployees(employeeList);
         payrollRepository.save(payroll);
 
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
@@ -151,7 +152,9 @@ public class PayrollServiceImpl implements IPayrollService {
         response.setData(
                 PayrollDTO.builder()
                         .payrollId(payroll.getPayrollId())
-                        .employees(employeeList)
+                        .employees(payroll.getEmployees().stream()
+                                .map(Employee::getEmployeeId)
+                                .toList())
                         .build()
         );
         return response;
@@ -162,7 +165,10 @@ public class PayrollServiceImpl implements IPayrollService {
         DefaultApiResponse<List<EmployeeDto>> response = new DefaultApiResponse<>();
         Payroll payroll = verifyAndFetchPayrollById(payrollId);
 
-        List<UUID> employeeList = payroll.getEmployees();
+        List<UUID> employeeList = payroll.getEmployees().stream()
+                .map(Employee::getEmployeeId)
+                .toList();
+
         // Optimize by fetching all employees in one query
         List<Employee> employees = employeeRepository.findAllById(employeeList);
         List<EmployeeDto> responseList = employees.stream()

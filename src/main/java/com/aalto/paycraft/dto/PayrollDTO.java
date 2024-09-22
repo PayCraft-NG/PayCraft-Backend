@@ -49,7 +49,6 @@ public class PayrollDTO {
     @Schema(description = "Frequency of payroll execution", example = "MONTHLY")
     private PayrollFrequency frequency;
 
-    @NotNull(message = "Payment status is required")
     @Schema(description = "Status of the payroll", example = "PENDING")
     private PaymentStatus paymentStatus;
 

@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @Entity @Getter @Setter
@@ -65,6 +66,9 @@ public class Employee extends BaseEntity{
     @ManyToOne
     @JoinColumn(name = "companyId", nullable = false)
     private Company company;
+
+    @ManyToMany(mappedBy = "employees")
+    private List<Payroll> payrolls;
 
     @Builder.Default
     @Column(nullable = false)
