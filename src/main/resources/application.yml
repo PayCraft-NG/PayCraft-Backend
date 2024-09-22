@@ -1,4 +1,20 @@
 spring:
+  mail:
+    host: smtp.gmail.com # smtp.gmail.com, smtp-mail.outlook.com, smtp.office365.com
+    port: 465
+    username: ${EMAIL_SENDER}
+    password: ${EMAIL_PASSWORD}
+    enable: false
+    properties:
+      mail:
+        transport:
+          protocol: smtp
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          ssl:
+            enable: true
   application:
     name: PayCraft
   profiles:
