@@ -15,6 +15,9 @@ public interface EmployerRepository extends JpaRepository<Employer, UUID> {
     @Query("SELECT e FROM Employer e WHERE e.emailAddress = :emailAddress AND e.deleted = false")
     Optional<Employer> findByEmailAddress(String emailAddress);
 
+    @Query("SELECT e FROM Employer e WHERE e.employerId = :employerId AND e.deleted = false")
+    Optional<Employer> findByEmployerId(UUID employerId);
+
     @Query("SELECT CASE WHEN COUNT(e) > 0 THEN TRUE ELSE FALSE END FROM Employer e WHERE e.phoneNumber = :phoneNumber AND e.deleted = false")
     boolean existsByPhoneNumber(String phoneNumber);
 

@@ -32,10 +32,10 @@ public class Employee extends BaseEntity{
     @Column(nullable = false)
     private Date dateOfBirth;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 100, unique = true)
     private String emailAddress;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 100, unique = true)
     private String phoneNumber;
 
     @Column(nullable = false, length = 100)
