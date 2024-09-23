@@ -21,12 +21,13 @@ public class PayrollJob {
     public void checkAndRunPayrolls() {
         log.info("===== Running Payroll Job =====");
 
-        List<Payroll> payrolls = payrollRepository.findAll();
+        List<Payroll> payrolls = payrollRepository.findAllWhereFrequencyIsNotNull();
         log.info("number of payrolls {}", payrolls.size());
         payrolls.forEach(payroll -> {
-            if (payroll.getAutomatic() && shouldRunPayroll(payroll)) {
-                processPayroll(payroll); // Custom method to run the payroll
-            }
+            if (shouldRunPayroll(payroll))
+                processPayroll(payroll);
+            else
+                log.info("payroll {} doesn't match run criteria", payroll.getPayrollId());
         });
     }
 
@@ -46,17 +47,20 @@ public class PayrollJob {
             case YEARLY -> lastRunDate.plusYears(1);
         };
 
-        // Calculate the next run time and compare it with now. If it is true, then the job is run to be run.
+        // Calculate the next run time and compare it with now. If it is true, then the run the job
         return LocalDate.now().isAfter(nextRunDate) || LocalDate.now().isEqual(nextRunDate);
     }
 
     private void processPayroll(Payroll payroll) {
         try{
             payroll.setPayPeriodStart(LocalDate.now());
-            payroll.setLastRunDate(LocalDate.now()); // Update the last run date
+            payroll.setLastRunDate(LocalDate.now());
 
-            //todo: Implement the logic to process payroll, update status, etc.
+            //todo: Implement the logic to process payroll and update totalSalary etc.
+
             payroll.setPaymentStatus(PaymentStatus.PAID);
+            log.info("Successfully processed {}", payroll.getPayrollId())
+            ;
         } catch (Exception e){
             payroll.setPaymentStatus(PaymentStatus.FAILED);
             log.info("An error occurred processing payroll {} {} {}", payroll.getPayrollId(), payroll.getCompany().getCompanyId(), payroll.getCompany().getCompanyName());
