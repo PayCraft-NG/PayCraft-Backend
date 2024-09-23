@@ -4,6 +4,8 @@ import com.aalto.paycraft.dto.EmployeeDto;
 import com.aalto.paycraft.dto.EmployeeRequestDto;
 import com.aalto.paycraft.entity.Employee;
 
+import java.util.Optional;
+
 public class EmployeeMapper {
 
     // Convert Employee entity to EmployeeDTO
@@ -47,6 +49,27 @@ public class EmployeeMapper {
         employee.setSalaryAmount(employeeDto.getSalaryAmount());
         employee.setSalaryCurrency(employeeDto.getSalaryCurrency());
         return employee;
+    }
+
+    public static void updateEntityFromDto(Employee employee, EmployeeRequestDto employeeDto) {
+        if (employeeDto == null || employee == null) {
+            return;  // No update if either is null
+        }
+
+        // Using Optional to update fields only if they are non-null
+        Optional.ofNullable(employeeDto.getFirstName()).ifPresent(employee::setFirstName);
+        Optional.ofNullable(employeeDto.getLastName()).ifPresent(employee::setLastName);
+        Optional.ofNullable(employeeDto.getDateOfBirth()).ifPresent(employee::setDateOfBirth);
+        Optional.ofNullable(employeeDto.getEmailAddress()).ifPresent(employee::setEmailAddress);
+        Optional.ofNullable(employeeDto.getPhoneNumber()).ifPresent(employee::setPhoneNumber);
+        Optional.ofNullable(employeeDto.getStreetAddress()).ifPresent(employee::setStreetAddress);
+        Optional.ofNullable(employeeDto.getJobTitle()).ifPresent(employee::setJobTitle);
+        Optional.ofNullable(employeeDto.getDepartment()).ifPresent(employee::setDepartment);
+        Optional.ofNullable(employeeDto.getBvn()).ifPresent(employee::setBvn);
+        Optional.ofNullable(employeeDto.getBankName()).ifPresent(employee::setBankName);
+        Optional.ofNullable(employeeDto.getAccountNumber()).ifPresent(employee::setAccountNumber);
+        Optional.ofNullable(employeeDto.getSalaryAmount()).ifPresent(employee::setSalaryAmount);
+        Optional.ofNullable(employeeDto.getSalaryCurrency()).ifPresent(employee::setSalaryCurrency);
     }
 }
 
