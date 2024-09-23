@@ -11,6 +11,7 @@ import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.service.IAuthenticationService;
 import com.aalto.paycraft.service.JWTService;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -143,6 +144,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         log.info("Generating Access Token and Refresh Token for USER");
 
         UUID companyId;
+        String lastCompanyId;
 
         AuthToken authToken;
         Optional<AuthToken> authTokenOpt = tokenRepository.findFirstByEmployer_EmployerIdOrderByCreatedAtDesc(employer.getEmployerId());
@@ -150,8 +152,14 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             authToken = authTokenOpt.get();
 
             // Extract company ID from the last token's claims if present
-            Claims tokenClaims = jwtService.extractClaims(authToken.getAccessToken(), Function.identity());
-            String lastCompanyId = (String) tokenClaims.get("activeCompanyID");
+            try {
+                Claims tokenClaims = jwtService.extractClaims(authToken.getAccessToken(), Function.identity());
+                lastCompanyId = (String) tokenClaims.get("activeCompanyID");
+            } catch (ExpiredJwtException ex) {
+                Claims tokenClaims = ex.getClaims(); // Extract claims from the expired token
+                lastCompanyId = (String) tokenClaims.get("activeCompanyID");
+                // Handle logic with the expired token claims
+            }
 
             if (lastCompanyId != null && !lastCompanyId.isEmpty()) {
                 companyId = UUID.fromString(lastCompanyId);
@@ -205,12 +213,12 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
 
     private void revokeOldTokens(Employer employer){
         // Log the process of revoking old tokens
-        log.info("Revoking old tokens for customer {}", employer.getEmailAddress());
+        log.info("Revoking old tokens for employer with email {}", employer.getEmailAddress());
 
         // Revoke all old tokens for the customer
         List<AuthToken> validTokens = tokenRepository.findAllByEmployer_EmployerId(employer.getEmployerId());
         if (validTokens.isEmpty()){
-            log.info("No valid tokens found for customer {}.", employer.getEmailAddress());
+            log.info("No valid tokens found for employer {}.", employer.getEmailAddress());
             return;
         }
         validTokens.forEach(token -> {
