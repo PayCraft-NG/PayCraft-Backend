@@ -5,11 +5,13 @@ import com.aalto.paycraft.dto.DefaultApiResponse;
 import com.aalto.paycraft.dto.EmployerDTO;
 import com.aalto.paycraft.dto.EmployerPasswordUpdateDTO;
 import com.aalto.paycraft.dto.EmployerUpdateDTO;
+import com.aalto.paycraft.entity.AuthToken;
 import com.aalto.paycraft.entity.Employer;
 import com.aalto.paycraft.exception.EmployerAlreadyExists;
 import com.aalto.paycraft.exception.EmployerNotFound;
 import com.aalto.paycraft.exception.PasswordUpdateException;
 import com.aalto.paycraft.mapper.EmployerMapper;
+import com.aalto.paycraft.repository.AuthTokenRepository;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.service.IEmailService;
 import com.aalto.paycraft.service.IEmployerService;
@@ -26,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
@@ -36,6 +39,7 @@ public class EmployerServiceImpl implements IEmployerService {
     private static final Logger log = LoggerFactory.getLogger(EmployerServiceImpl.class);
     private final EmployerRepository employerRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthTokenRepository tokenRepository;
     private final IEmailService emailService;
     private final JWTService jwtService;
     private final HttpServletRequest request;
@@ -70,7 +74,11 @@ public class EmployerServiceImpl implements IEmployerService {
 
         log.info("===== EmailService status: {} =====", enableEmail);
         if (enableEmail){
-            emailService.sendEmail(employer.getEmailAddress(), "Sign up Success!", createEmailContext(employer.getFirstName()), "signup");
+            log.info("Emails Works");
+//            emailService.sendEmail(employer.getEmailAddress(),
+//                    "Sign up Success!",
+//                    createEmailContext(employer.getFirstName()),
+//                    "signup");
         }
 
         response.setStatusCode(PayCraftConstant.ONBOARD_SUCCESS);
@@ -136,6 +144,7 @@ public class EmployerServiceImpl implements IEmployerService {
         // However, there is a bug that prevents recreating the exact same account after it has been deleted.
         // It's not a bug, it's a feature, wink!
         employer.setDeleted(true);
+        revokeAllTokens(employer);
         employerRepository.save(employer);
 
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
@@ -216,12 +225,15 @@ public class EmployerServiceImpl implements IEmployerService {
             destEmployer.setStreetAddress(srcEmployerDTO.getStreetAddress());
 
         // Ensure the newly updated attributes do not exist already
-        if(srcEmployerDTO.getEmailAddress() != null) {
-            if(employerRepository.existsByEmailAddress(srcEmployerDTO.getEmailAddress()))
-                throw new EmployerAlreadyExists("Employer account already registered with this email address: " + srcEmployerDTO.getEmailAddress());
+        if (srcEmployerDTO.getEmailAddress() !=null && !Objects.equals(
+                srcEmployerDTO.getEmailAddress(), destEmployer.getEmailAddress())) {
+            if (employerRepository.existsByEmailAddress(srcEmployerDTO.getEmailAddress()))
+                throw new RuntimeException("Employer account already registered with this email address: " + srcEmployerDTO.getEmailAddress());
             destEmployer.setEmailAddress(srcEmployerDTO.getEmailAddress());
         }
-        if(srcEmployerDTO.getPhoneNumber() != null) {
+
+        if(srcEmployerDTO.getPhoneNumber() != null && !Objects.equals(
+                srcEmployerDTO.getPhoneNumber(), destEmployer.getPhoneNumber())) {
             if (employerRepository.existsByPhoneNumber(srcEmployerDTO.getPhoneNumber()))
                 throw new EmployerAlreadyExists("Employer account already registered with this phone number: " + srcEmployerDTO.getPhoneNumber());
             destEmployer.setPhoneNumber(srcEmployerDTO.getPhoneNumber());
@@ -240,6 +252,27 @@ public class EmployerServiceImpl implements IEmployerService {
             log.warn("Token has expired");
             throw new ExpiredJwtException(null, null, "Access Token has expired");
         }
+    }
+
+    // Revoke all tokens related to employer since they are no longer on the system
+    private void revokeAllTokens(Employer employer){
+        // Log the process of revoking old tokens
+        log.info("Revoking old tokens for employer {}", employer.getEmailAddress());
+
+        // Revoke all old tokens for the customer
+        List<AuthToken> validTokens = tokenRepository.findAllByEmployer_EmployerId(employer.getEmployerId());
+        if (validTokens.isEmpty()){
+            log.info("No valid tokens found for employer with email {}.", employer.getEmailAddress());
+            return;
+        }
+        validTokens.forEach(token -> {
+            token.setRevoked(true);
+            token.setExpired(true);
+        });
+        tokenRepository.saveAll(validTokens);
+
+        // Log successful token revocation
+        log.info("Revoked old tokens for customer {}.", employer.getEmailAddress());
     }
 
 }

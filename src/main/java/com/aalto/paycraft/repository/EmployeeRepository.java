@@ -14,4 +14,13 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
 
     // Check if Employee exists by Email Address, Phone Number, CompanyID and make sure the account has not been deleted
     boolean existsByEmailAddressAndPhoneNumberAndCompany_CompanyIdAndDeletedIsFalse(String emailAddress, String phoneNumber, UUID companyProfileId);
+
+    @Query("SELECT CASE WHEN COUNT(e) > 0 THEN TRUE ELSE FALSE END FROM Employee e WHERE e.phoneNumber = :phoneNumber AND e.deleted = false")
+    boolean existsByPhoneNumber(String phoneNumber);
+
+    @Query("SELECT CASE WHEN COUNT(e) > 0 THEN TRUE ELSE FALSE END FROM Employee e WHERE e.emailAddress = :emailAddress AND e.deleted = false")
+    boolean existsByEmailAddress(String emailAddress);
+
+    @Query("SELECT CASE WHEN COUNT(e) > 0 THEN TRUE ELSE FALSE END FROM Employee e WHERE e.bvn = :bvn AND e.deleted = false")
+    boolean existsByBvn(String bvn);
 }
