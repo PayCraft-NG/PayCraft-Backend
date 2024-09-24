@@ -1,6 +1,6 @@
 package com.aalto.paycraft.service.impl;
 
-import com.aalto.paycraft.dto.DefaultApiResponse;
+import com.aalto.paycraft.dto.BankTransferResponseDTO;
 import com.aalto.paycraft.dto.DefaultKoraResponse;
 import com.aalto.paycraft.dto.VirtualAccountResponseDTO;
 import com.aalto.paycraft.dto.enums.Currency;
@@ -10,10 +10,11 @@ import com.aalto.paycraft.repository.VirtualAccountRepository;
 import com.aalto.paycraft.service.IWalletService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.Column;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -36,6 +37,7 @@ public class WalletServiceImpl implements IWalletService {
 
     private final String BASE_URL = "https://api.korapay.com/merchant/api/v1/";
     private static final String VBA = "/virtual-bank-account";
+    private static final String FUND = "charges/bank-transfer";
     private static final String VBATransaction = "/virtual-bank-account/transactions";
 
     @Override
@@ -97,6 +99,70 @@ public class WalletServiceImpl implements IWalletService {
         }
 
         return account;
+    }
+
+    // New method to initiate a bank transfer
+    @Override
+    public DefaultKoraResponse<BankTransferResponseDTO> initiateBankTransfer(BigDecimal amount, String currency, Employer employer) {
+        HttpResponse<String> httpResponse = null;
+        DefaultKoraResponse<BankTransferResponseDTO> response = null;
+        try {
+            // Prepare request body
+            Map<String, Object> requestBody = createRequestBodyForTransfer(amount, currency, employer);
+
+            // Convert request body to JSON
+            String requestBodyJson = jacksonObjectMapper.writeValueAsString(requestBody);
+            String url = BASE_URL + FUND;
+            log.info(url);
+
+            // Build the request
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + SECRET_KEY)
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBodyJson))
+                    .build();
+
+            // Send the request and get the response
+            httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            log.info(httpResponse.body());
+
+            // Parse the response
+            if (httpResponse.statusCode() == 200) {
+                response = jacksonObjectMapper.readValue(httpResponse.body(),
+                        new TypeReference<DefaultKoraResponse<BankTransferResponseDTO>>() {});
+                log.info("Bank transfer initiated successfully for Employer with email {}", employer.getEmailAddress());
+
+                log.info(response.toString());
+                log.info(httpResponse.body());
+
+                return ResponseEntity.status(HttpStatus.OK).body(response).getBody();
+            } else {
+                log.error("Failed to initiate bank transfer: {}", httpResponse.body().substring(0, 40));
+            }
+        } catch (Exception e) {
+            log.error("Error while initiating bank transfer: {}", e.getMessage());
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).body(response).getBody();
+    }
+
+    private static Map<String, Object> createRequestBodyForTransfer(BigDecimal amount, String currency, Employer employer) {
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("account_name", employer.getLastName());
+        requestBody.put("amount", amount);
+        requestBody.put("currency", currency);
+        requestBody.put("reference", employer.getVirtualAccount().getAccountReference());  // Unique reference for each transaction
+        requestBody.put("notification_url", "http://localhost:6020/webhook/korapay");  // webhook URL
+
+        // Customer information
+        Map<String, String> customer = new HashMap<>();
+        customer.put("name", String.format("%s %s", employer.getFirstName(), employer.getLastName()));
+        customer.put("email", employer.getEmailAddress());
+        requestBody.put("customer", customer);
+
+        log.info(requestBody.toString());
+        return requestBody;
     }
 
     private static Map<String, Object> createRequestBody(Employer employer) {
