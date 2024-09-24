@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
 public class PayrollUpdateDTO {
     @Schema(description = "Indicates if the payroll is automatic or manual", example = "true")
     private Boolean automatic; // Indicates if the payroll is automatic or manual
-    @Schema(description = "Frequency of payroll execution", example = "MONTHLY")
-    private PayrollFrequency frequency; // Optional, frequency of payroll execution (nullable)
+
+    @Schema(description = "Exact period in cron expression to run payroll", example = "* * * * * 5")
+    private String cronExpression;
 }

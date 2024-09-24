@@ -3,6 +3,8 @@ package com.aalto.paycraft.service.impl;
 import com.aalto.paycraft.service.IEmailService;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -11,10 +13,14 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class EmailServiceImpl implements IEmailService {
     private final JavaMailSender mailSender;
     private  final TemplateEngine templateEngine;
+
+    @Value("${spring.mail.username}")
+    private String senderEmail;
 
     @Async
     @Override
@@ -29,7 +35,7 @@ public class EmailServiceImpl implements IEmailService {
             try {
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true);
-                helper.setFrom("bakaredavid007@gmail.com");
+                helper.setFrom(senderEmail);
                 helper.setTo(toEmail);
                 helper.setSubject(subject);
                 helper.setText(htmlContent, true);
@@ -37,14 +43,14 @@ public class EmailServiceImpl implements IEmailService {
                 mailSender.send(message);
 
                 /* If successful, break out of the retry loop */
-                System.out.println("Email sent successfully");
+                log.info("Email sent successfully");
                 return;
             } catch (Exception e) {
                 retryCount++;
-                System.out.println("Attempt " + retryCount + " failed. Error: " + e.getMessage());
+                log.info("Attempt {} failed. Error: {}", retryCount, e.getMessage());
 
                 if (retryCount >= maxRetries) {
-                    System.out.println("All retry attempts failed. Giving up.");
+                    log.info("All retry attempts failed. Giving up.");
                     throw new RuntimeException("Failed to send email after " + maxRetries + " attempts", e);
                 }
 
