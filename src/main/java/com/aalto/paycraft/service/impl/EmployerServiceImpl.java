@@ -6,6 +6,7 @@ import com.aalto.paycraft.dto.EmployerDTO;
 import com.aalto.paycraft.dto.EmployerPasswordUpdateDTO;
 import com.aalto.paycraft.dto.EmployerUpdateDTO;
 import com.aalto.paycraft.entity.Employer;
+import com.aalto.paycraft.entity.VirtualAccount;
 import com.aalto.paycraft.exception.EmployerAlreadyExists;
 import com.aalto.paycraft.exception.EmployerNotFound;
 import com.aalto.paycraft.exception.PasswordUpdateException;
@@ -13,6 +14,7 @@ import com.aalto.paycraft.mapper.EmployerMapper;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.service.IEmailService;
 import com.aalto.paycraft.service.IEmployerService;
+import com.aalto.paycraft.service.IWalletService;
 import com.aalto.paycraft.service.JWTService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -37,6 +39,7 @@ public class EmployerServiceImpl implements IEmployerService {
     private final EmployerRepository employerRepository;
     private final PasswordEncoder passwordEncoder;
     private final IEmailService emailService;
+    private final IWalletService walletService;
     private final JWTService jwtService;
     private final HttpServletRequest request;
 
@@ -67,10 +70,13 @@ public class EmployerServiceImpl implements IEmployerService {
 
         // Save the employer profile
         employerRepository.save(employer);
+        VirtualAccount account = walletService.createVirtualAccount(employer);
+        employer.setVirtualAccount(account);
+        employerRepository.save(employer);
 
         log.info("===== EmailService status: {} =====", enableEmail);
         if (enableEmail){
-            emailService.sendEmail(employer.getEmailAddress(), "Sign up Success!", createEmailContext(employer.getFirstName()), "signup");
+//            emailService.sendEmail(employer.getEmailAddress(), "Sign up Success!", createEmailContext(employer.getFirstName()), "signup");
         }
 
         response.setStatusCode(PayCraftConstant.ONBOARD_SUCCESS);
@@ -82,6 +88,7 @@ public class EmployerServiceImpl implements IEmployerService {
                         .firstName(employer.getFirstName())
                         .lastName(employer.getLastName())
                         .emailAddress(employer.getEmailAddress())
+                        .virtualAccountId(employer.getVirtualAccount().getAccountId())
                         .build()
         );
         return response;
