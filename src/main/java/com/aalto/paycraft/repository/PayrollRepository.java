@@ -10,6 +10,6 @@ import java.util.UUID;
 
 @Repository
 public interface PayrollRepository extends JpaRepository<Payroll, UUID> {
-    @Query("SELECT p FROM Payroll p WHERE p.frequency IS NOT NULL")
-    List<Payroll> findAllWhereFrequencyIsNotNull();
+    @Query("SELECT p FROM Payroll p WHERE p.automatic IS true")
+    List<Payroll> findAddWhereAutomaticIsTrue();
 }
