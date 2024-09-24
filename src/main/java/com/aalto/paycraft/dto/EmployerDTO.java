@@ -99,4 +99,10 @@ public class EmployerDTO {
             example = "d290f1ee-6c54-4b01-90e6-d701748f0851"
     )
     private UUID employerId;
+
+    @Schema(
+            description = "Unique identifier of the virtual account",
+            example = "d290f1ee-6c54-4b01-90e6-d701748f0851"
+    )
+    private UUID virtualAccountId;
 }
