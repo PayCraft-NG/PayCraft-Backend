@@ -56,7 +56,8 @@ public class SecurityConfig {
     @Bean
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.addAllowedOrigin("http://localhost:5173"); // Allows all origins (adjust it if you need to)
+        configuration.addAllowedOrigin("http://localhost:5173");
+        configuration.addAllowedOrigin("https://paycraft-dev.netlify.app");
         configuration.addAllowedMethod("*"); // Allows all methods
         configuration.addAllowedHeader("*"); // Allows all headers.
         configuration.setAllowCredentials(true);
