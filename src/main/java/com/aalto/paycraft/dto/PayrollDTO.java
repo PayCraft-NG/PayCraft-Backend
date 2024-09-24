@@ -46,8 +46,8 @@ public class PayrollDTO {
     @Schema(description = "Last time the payroll ran", example = "2023-09-30")
     private LocalDate lastRunDate;
 
-    @Schema(description = "Frequency of payroll execution", example = "MONTHLY")
-    private PayrollFrequency frequency;
+    @Schema(description = "Exact period in cron expression to run payroll", example = "*/5 * * * * *")
+    private String cronExpression;
 
     @Schema(description = "Status of the payroll", example = "PENDING")
     private PaymentStatus paymentStatus;
