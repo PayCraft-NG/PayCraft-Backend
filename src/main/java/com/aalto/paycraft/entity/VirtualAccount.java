@@ -31,6 +31,10 @@ public class VirtualAccount {
     @Column(unique = true, nullable = false)
     private String accountReference;
 
+    // Account reference returned by Kora when creating account
+    @Column(unique = true, nullable = false)
+    private String koraAccountReference;
+
     // Bank code (from the response)
     @Column(nullable = false)
     private String bankCode;

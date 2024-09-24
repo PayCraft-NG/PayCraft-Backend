@@ -76,6 +76,7 @@ public class WalletServiceImpl implements IWalletService {
                     account = VirtualAccount.builder()
                             .accountNumber(response.getAccount_number())
                             .accountReference(response.getAccount_reference())
+                            .koraAccountReference(response.getUnique_id())
                             .bankCode(response.getBank_code())
                             .bankName(response.getBank_name())
                             .accountStatus(response.getAccount_status())
