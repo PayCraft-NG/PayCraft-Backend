@@ -6,6 +6,7 @@ import com.aalto.paycraft.dto.EmployeeDto;
 import com.aalto.paycraft.dto.EmployeeRequestDto;
 import com.aalto.paycraft.entity.Company;
 import com.aalto.paycraft.entity.Employee;
+import com.aalto.paycraft.exception.PasswordUpdateException;
 import com.aalto.paycraft.mapper.EmployeeMapper;
 import com.aalto.paycraft.repository.CompanyRepository;
 import com.aalto.paycraft.repository.EmployeeRepository;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -90,13 +92,16 @@ public class EmployeeServiceImpl implements IEmployeeService {
         Company company = new Company();
 
         // Fetch the employee profile or throw exception if not found
-        Employee employee = employeeRepository.findById(UUID.fromString(employeeId))
-                .orElseThrow(() -> new RuntimeException("EmployeeProfileId is invalid"));
+        Employee employee = employeeRepository.findByEmployeeId(UUID.fromString(employeeId))
+                .orElseThrow(() -> new RuntimeException("Employee Id is invalid"));
 
         // Verify that the company profile matches
         if (!employee.getCompany().getCompanyId().equals(COMPANY_ID())) {
-            throw new RuntimeException("EmployeeProfile doesn't match this CompanyProfileId");
+            throw new RuntimeException("Employee doesn't belong to company with this CompanyId" + COMPANY_ID());
         }
+
+        // Verify that the Email, PhoneNumber and BVN does not belong to another employee.
+        verifyDetailsToBeUpdated(requestBody, employee);
 
         // Update the destination Employee entity with fields from the source DTO
         Optional<Company> companyProfileOpt = companyRepository.findById(COMPANY_ID());
@@ -104,7 +109,7 @@ public class EmployeeServiceImpl implements IEmployeeService {
             company = companyProfileOpt.get();
         }
 
-        employee = EmployeeMapper.toEntity(requestBody);
+        EmployeeMapper.updateEntityFromDto(employee,requestBody);
         employee.setCompany(company);
 
         // Save the updated employee profile
@@ -117,6 +122,26 @@ public class EmployeeServiceImpl implements IEmployeeService {
         response.setData(responseData);
 
         return response;
+    }
+
+    private void verifyDetailsToBeUpdated(EmployeeRequestDto requestBody, Employee employee) {
+        // Checks if the email being updated to does not exist.
+        if (!Objects.equals(requestBody.getEmailAddress(), employee.getEmailAddress())) {
+            if (employeeRepository.existsByEmailAddress(requestBody.getEmailAddress()))
+                throw new RuntimeException("Employee account already registered with this email address: " + requestBody.getEmailAddress());
+        }
+
+        // Checks if the phoneNumber being updated to does not exist.
+        if (!Objects.equals(requestBody.getPhoneNumber(), employee.getPhoneNumber())) {
+            if (employeeRepository.existsByPhoneNumber(requestBody.getPhoneNumber()))
+                throw new RuntimeException("Employee account already registered with this phone Number: " + requestBody.getPhoneNumber());
+        }
+
+        // Checks if the bvn being updated to does not exist.
+        if (!Objects.equals(requestBody.getBvn(), employee.getBvn())) {
+            if (employeeRepository.existsByBvn(requestBody.getBvn()))
+                throw new RuntimeException("Employee account already registered with this email address: " + requestBody.getBvn());
+        }
     }
 
 
@@ -175,5 +200,15 @@ public class EmployeeServiceImpl implements IEmployeeService {
         )) {
             throw new RuntimeException("This employee already exists under this COMPANY");
         }
+
+        // Verify that the phone number or email address or BVN doesn't already exist
+        if(employeeRepository.existsByPhoneNumber(requestBody.getPhoneNumber()))
+            throw new RuntimeException("Employee account already registered with this phone number: " + requestBody.getPhoneNumber());
+
+        if(employeeRepository.existsByEmailAddress(requestBody.getEmailAddress()))
+            throw new RuntimeException("Employee account already registered with this email address: " + requestBody.getEmailAddress());
+
+        if(employeeRepository.existsByBvn(requestBody.getBvn()))
+            throw new RuntimeException("Employee account already registered with this BVN: " + requestBody.getBvn());
     }
 }
