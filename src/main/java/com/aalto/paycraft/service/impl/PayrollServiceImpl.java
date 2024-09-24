@@ -12,19 +12,19 @@ import com.aalto.paycraft.repository.EmployeeRepository;
 import com.aalto.paycraft.repository.PayrollRepository;
 import com.aalto.paycraft.service.IPayrollService;
 import com.aalto.paycraft.service.JWTService;
+import com.aalto.paycraft.service.PayrollJobService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -35,6 +35,7 @@ public class PayrollServiceImpl implements IPayrollService {
     private final EmployeeRepository employeeRepository;
     private final JWTService jwtService;
     private final HttpServletRequest request;
+    private final PayrollJobService payrollJobService;
 
     // Gets the AccessToken from the Request Sent
     private String ACCESS_TOKEN(){
@@ -53,8 +54,10 @@ public class PayrollServiceImpl implements IPayrollService {
         DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
 
         // Check if payroll is automatic
-        if (payrollDTO.getAutomatic() != null && payrollDTO.getAutomatic())
+        if (payrollDTO.getAutomatic() != null && payrollDTO.getAutomatic()){
             payrollDTO.setLastRunDate(LocalDate.now()); // Set runDate as now (this would be the last run date)
+            verifyCronExpression(payrollDTO.getCronExpression());
+        }
 
         log.info("companyID from token: {}", COMPANY_ID());
 
@@ -63,7 +66,12 @@ public class PayrollServiceImpl implements IPayrollService {
 
         Payroll payroll = PayrollMapper.toEntity(payrollDTO);
         payroll.setCompany(company);
-        payrollRepository.save(payroll);
+
+        Payroll savedPayroll = payrollRepository.save(payroll);
+
+        // add payroll to the list of scheduled payrolls if it is an automatic payroll, and the cron expression isn't empty or null
+        if (savedPayroll.getCronExpression() != null && savedPayroll.getAutomatic() && !savedPayroll.getCronExpression().isEmpty())
+            payrollJobService.schedulePayroll(savedPayroll);
 
         response.setStatusMessage("Payroll created successfully");
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
@@ -89,6 +97,10 @@ public class PayrollServiceImpl implements IPayrollService {
         Payroll payroll = verifyAndFetchPayrollById(payrollId);
 
         payrollRepository.delete(payroll);
+
+        // remove payroll to the list of scheduled payrolls if it is an automatic payroll, and the cron expression isn't empty or null
+        if (payroll.getCronExpression() != null && payroll.getAutomatic() && !payroll.getCronExpression().isEmpty())
+            payrollJobService.cancelScheduledPayroll(payroll.getPayrollId());
 
         response.setStatusMessage("Payroll deleted successfully");
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
@@ -208,14 +220,26 @@ public class PayrollServiceImpl implements IPayrollService {
     public DefaultApiResponse<PayrollDTO> updatePayroll(PayrollUpdateDTO payrollUpdateDTO, UUID payrollId) {
         DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
         Payroll payroll = verifyAndFetchPayrollById(payrollId);
-        payrollRepository.save(updatePayrollRecord(payroll,payrollUpdateDTO));
+
+        if (payrollUpdateDTO.getAutomatic() != null && payrollUpdateDTO.getAutomatic()){
+            verifyCronExpression(payrollUpdateDTO.getCronExpression());
+        }
+
+        Payroll savedPayroll = payrollRepository.save(updatePayrollRecord(payroll,payrollUpdateDTO));
+
+        // update the scheduled payrolls if it is an automatic payroll, and the cron expression isn't empty or null
+        if (savedPayroll.getCronExpression() != null && savedPayroll.getAutomatic() && !savedPayroll.getCronExpression().isEmpty())
+            payrollJobService.schedulePayroll(savedPayroll);
+        else
+            payrollJobService.cancelScheduledPayroll(savedPayroll.getPayrollId()); // remove payroll if the payroll is no longer automatic
+
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
         response.setStatusMessage("Payroll updated successfully");
         response.setData(
                 PayrollDTO.builder()
                         .payrollId(payroll.getPayrollId())
                         .automatic(payrollUpdateDTO.getAutomatic())
-                        .frequency(payrollUpdateDTO.getFrequency())
+                        .cronExpression(payrollUpdateDTO.getCronExpression())
                         .build()
         );
         return response;
@@ -242,8 +266,8 @@ public class PayrollServiceImpl implements IPayrollService {
     private Payroll updatePayrollRecord(Payroll payroll, PayrollUpdateDTO payrollUpdateDTO){
         if(payrollUpdateDTO.getAutomatic() != null)
             payroll.setAutomatic(payrollUpdateDTO.getAutomatic());
-        if(payrollUpdateDTO.getFrequency() != null)
-            payroll.setFrequency(payrollUpdateDTO.getFrequency());
+        if(payrollUpdateDTO.getCronExpression() != null)
+            payroll.setCronExpression(payrollUpdateDTO.getCronExpression());
         return payroll;
     }
 
@@ -252,6 +276,15 @@ public class PayrollServiceImpl implements IPayrollService {
         if (jwtService.isTokenExpired(token)) {
             log.warn("Token has expired");
             throw new ExpiredJwtException(null, null, "Access Token has expired");
+        }
+    }
+
+    /* Method to verify cron expression */
+    private void verifyCronExpression(String cronExpression){
+        try{
+            CronTrigger cronTrigger = new CronTrigger(cronExpression);
+        } catch (Exception e){
+            throw new RuntimeException("Invalid Cron Expression " + cronExpression);
         }
     }
 }

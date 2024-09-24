@@ -15,7 +15,7 @@ public class PayrollMapper{
                 .payPeriodStart(payrollDTO.getPayPeriodStart())
                 .payPeriodEnd(payrollDTO.getPayPeriodEnd())
                 .lastRunDate(payrollDTO.getLastRunDate())
-                .frequency(payrollDTO.getFrequency())
+                .cronExpression(payrollDTO.getCronExpression())
                 .paymentStatus(PaymentStatus.PENDING)
                 .build();
     }
@@ -29,7 +29,7 @@ public class PayrollMapper{
                 .payPeriodStart(payroll.getPayPeriodStart())
                 .payPeriodEnd(payroll.getPayPeriodEnd())
                 .lastRunDate(payroll.getLastRunDate())
-                .frequency(payroll.getFrequency())
+                .cronExpression(payroll.getCronExpression())
                 .paymentStatus(payroll.getPaymentStatus())
                 .build();
     }

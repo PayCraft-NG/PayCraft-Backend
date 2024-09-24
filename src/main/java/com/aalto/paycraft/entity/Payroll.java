@@ -1,7 +1,6 @@
 package com.aalto.paycraft.entity;
 
 import com.aalto.paycraft.dto.enums.PaymentStatus;
-import com.aalto.paycraft.dto.enums.PayrollFrequency;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -39,16 +38,7 @@ public class Payroll extends BaseEntity {
 
     private LocalDate payPeriodEnd; // End date of the pay period (optional for manual handling)
 
-    @ManyToMany
-    @JoinTable(
-            name = "payroll_employee", // Name of the join table
-            joinColumns = @JoinColumn(name = "payrollId"), // Join column for Payroll
-            inverseJoinColumns = @JoinColumn(name = "employeeId") // Join column for Employee
-    )
-    private List<Employee> employees = new ArrayList<>(); // List of employees associated with the payroll
-
-    @Enumerated(EnumType.STRING)
-    private PayrollFrequency frequency; // The frequency of payroll execution (optional if manual)
+    private String cronExpression;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -58,4 +48,11 @@ public class Payroll extends BaseEntity {
     @JoinColumn(name = "companyId", referencedColumnName = "companyId", nullable = false)
     private Company company; // Reference to the company that owns this payroll
 
+    @ManyToMany
+    @JoinTable(
+            name = "payroll_employee", // Name of the join table
+            joinColumns = @JoinColumn(name = "payrollId"), // Join column for Payroll
+            inverseJoinColumns = @JoinColumn(name = "employeeId") // Join column for Employee
+    )
+    private List<Employee> employees = new ArrayList<>(); // List of employees associated with the payroll
 }
