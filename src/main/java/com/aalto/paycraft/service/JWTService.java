@@ -106,9 +106,21 @@ public class JWTService {
         return extractClaims(token, Claims::getSubject);
     }
 
+    // Extract the user ID from the JWT token
+    public String extractID(String token) {
+        // Extract the "userID" claim from the token and return it as a String
+        return extractClaims(token, claims -> claims.get("userID", String.class));
+    }
+
     // Validate token by checking the username and whether the token is expired
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
+        Employer employer = new Employer();
+        UUID userId = UUID.fromString(extractID(token));
+        Optional<Employer> employerOptional = employerRepository.findByEmployerId(userId);
+        if(employerOptional.isPresent()){
+            employer = employerOptional.get();
+        }
+        final String username = employer.getEmailAddress();
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
