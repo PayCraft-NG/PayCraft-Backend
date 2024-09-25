@@ -17,11 +17,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -115,11 +118,17 @@ public class WalletServiceImpl implements IWalletService {
             String url = BASE_URL + FUND;
             log.info(url);
 
+            // Generate the HMAC-SHA256 signature
+            String signature = generateSignature(requestBodyJson, SECRET_KEY);
+
+            // Build the request
+
             // Build the request
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + SECRET_KEY)
+                    .header("x-korapay-signature", signature)
                     .POST(HttpRequest.BodyPublishers.ofString(requestBodyJson))
                     .build();
 
@@ -184,5 +193,22 @@ public class WalletServiceImpl implements IWalletService {
         kyc.put("bvn", employer.getBvn());
         requestBody.put("kyc", kyc);
         return requestBody;
+    }
+
+    // Helper method to generate the HMAC-SHA256 signature
+    private String generateSignature(String payload, String secretKey) throws Exception {
+        Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
+        SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        sha256_HMAC.init(secretKeySpec);
+
+        byte[] hmacData = sha256_HMAC.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+
+        // Convert the hash to hexadecimal format
+        StringBuilder result = new StringBuilder();
+        for (byte b : hmacData) {
+            result.append(String.format("%02x", b));
+        }
+
+        return result.toString();
     }
 }
