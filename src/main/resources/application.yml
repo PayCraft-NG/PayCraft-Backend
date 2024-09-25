@@ -18,8 +18,11 @@ spring:
   application:
     name: PayCraft
   profiles:
-    active: dev
+    active: qa
 
 payroll:
   job:
     fixedRate: 300000
+
+frontend:
+  url: ${FRONTEND_URL:http://localhost:5173}

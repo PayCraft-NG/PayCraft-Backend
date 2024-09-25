@@ -59,6 +59,9 @@ public class EmployerServiceImpl implements IEmployerService {
     @Value("${spring.mail.enable}")
     private Boolean enableEmail;
 
+    @Value("${frontend.url}")
+    private String frontendUrl;
+
     @Override
     public DefaultApiResponse<EmployerDTO> createEmployer(EmployerDTO employerDTO) {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
@@ -75,10 +78,10 @@ public class EmployerServiceImpl implements IEmployerService {
         log.info("===== EmailService status: {} =====", enableEmail);
         if (enableEmail){
             log.info("Emails Works");
-//            emailService.sendEmail(employer.getEmailAddress(),
-//                    "Sign up Success!",
-//                    createEmailContext(employer.getFirstName()),
-//                    "signup");
+           emailService.sendEmail(employer.getEmailAddress(),
+                   "Welcome to PayCraft",
+                   createEmailContext(employer.getFirstName(), frontendUrl),
+                   "signup");
         }
 
         response.setStatusCode(PayCraftConstant.ONBOARD_SUCCESS);
@@ -240,9 +243,10 @@ public class EmployerServiceImpl implements IEmployerService {
         }
     }
 
-    private static Context createEmailContext(String firstName){
+    private Context createEmailContext(String firstName, String frontendUrl){
         Context emailContext = new Context();
-        emailContext.setVariable("name", firstName);
+        emailContext.setVariable("username", firstName);
+        emailContext.setVariable("paycraftURL", frontendUrl);
         return emailContext;
     }
 

@@ -2,7 +2,8 @@
 <html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="UTF-8">
-    <title>Welcome to PayCraft</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment History</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -21,25 +22,15 @@
             color: #800080;
             text-decoration: underline;
         }
-
-        .signature {
-            margin-top: 30px;
-        }
-        .signature img {
-            max-width: 100%;
-            height: auto;
-        }
-
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>Sign Up Notification</h1>
-        <hr>
-        <p>Welcome to PayCraft, <span th:text="${username}"></span>! We're excited to have you on board. </p>
-        <p>Start managing your payroll effortlessly with our platform.</p>
-        <p>If you have any questions, feel free to reach out.</p>
+        <h1>Payment History</h1>
+        <p>Hi <span th:text="${username}"></span>,</p>
+        <p>Your payment history for <span th:text="${period}"></span> is now available. Please find the attached document for your records.</p>
+        <p>For any questions or clarifications, feel free to get in touch.</p>
         <br>
         <p>Cheers,</p>
         <p>The PayCraft Team.</p>
@@ -48,5 +39,4 @@
         </p>
     </div>
 </body>
-
 </html>
