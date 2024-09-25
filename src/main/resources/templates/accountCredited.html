@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+
 <head>
     <meta charset="UTF-8">
-    <title>Welcome to PayCraft</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Credited</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -21,25 +23,17 @@
             color: #800080;
             text-decoration: underline;
         }
-
-        .signature {
-            margin-top: 30px;
-        }
-        .signature img {
-            max-width: 100%;
-            height: auto;
-        }
-
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>Sign Up Notification</h1>
-        <hr>
-        <p>Welcome to PayCraft, <span th:text="${username}"></span>! We're excited to have you on board. </p>
-        <p>Start managing your payroll effortlessly with our platform.</p>
-        <p>If you have any questions, feel free to reach out.</p>
+        <h1>Account Credited</h1>
+        <p>Hi <span th:text="${username}"></span>,</p>
+        <p>Your virtual account has just been credited with <span th:text="${amount}"></span>.</p>
+        <p><strong>Payment ID:</strong> <span th:text="${paymentId}"></span></p>
+        <p>You can view your updated balance in your account dashboard.</p>
+        <p>Thanks for using PayCraft!</p>
         <br>
         <p>Cheers,</p>
         <p>The PayCraft Team.</p>
@@ -48,5 +42,4 @@
         </p>
     </div>
 </body>
-
 </html>
