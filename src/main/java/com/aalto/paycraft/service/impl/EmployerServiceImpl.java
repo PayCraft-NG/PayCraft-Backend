@@ -75,14 +75,15 @@ public class EmployerServiceImpl implements IEmployerService {
         // Save the employer profile
         employerRepository.save(employer);
 
-        log.info("===== EmailService status: {} =====", enableEmail);
         if (enableEmail){
-            log.info("Emails Works");
+            log.info("===== Email Enabled =====");
            emailService.sendEmail(employer.getEmailAddress(),
                    "Welcome to PayCraft",
                    createEmailContext(employer.getFirstName(), frontendUrl),
                    "signup");
         }
+        else
+            log.info("===== Email Disabled =====");
 
         response.setStatusCode(PayCraftConstant.ONBOARD_SUCCESS);
         response.setStatusMessage("Employer created successfully");
