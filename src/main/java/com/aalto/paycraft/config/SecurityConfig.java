@@ -35,7 +35,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "api/v1/auth/**",
                                 "/**",
-                                "webhook/korapay",
+                                "webhook",
                                 "api/v1/employer/create",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
