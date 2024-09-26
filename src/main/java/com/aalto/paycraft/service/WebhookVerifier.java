@@ -21,23 +21,26 @@ public class WebhookVerifier {
             hexChars[j * 2] = HEX_ARRAY[v >> 4];
             hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
         }
-        return new String(hexChars);
+
+        return new String (hexChars);
     }
 
     // Method to verify the signature
-    public static boolean verifySignature(String payload, String signature, String secretKey) {
+    public static boolean verifySignature(String webhookData, String signature, String korapaySecretKey) {
         try {
-            // Use HMAC-SHA256 to hash the payload using the secret key
-            Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secret_key = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            sha256_HMAC.init(secret_key);
+            Mac sha256HMAC = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secretKey = new SecretKeySpec(korapaySecretKey.getBytes("UTF-8"), "HmacSHA256");
+            sha256HMAC.init(secretKey);
 
-            // Generate the HMAC hash
-            byte[] hash = sha256_HMAC.doFinal(payload.getBytes(StandardCharsets.UTF_8));
-            String generatedSignature = bytesToHex(hash);
+            String generatedSignature = bytesToHex(sha256HMAC.doFinal(webhookData.getBytes("UTF-8")));
+
+            log.info("Generated Signature {}", generatedSignature);
+            log.info("Received signature: {}", signature);
+
 
             // Compare the generated HMAC hex with the signature from Korapay
             return generatedSignature.equals(signature);
+
         } catch (Exception e) {
             log.error("An error occurred while verifying the signature", e);
             return false;

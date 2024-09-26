@@ -10,9 +10,11 @@ import java.math.BigDecimal;
 @JsonIgnoreProperties
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WebhookResponseData {
+    private String reference;
+    private String payment_reference;
+    private String currency;
     private BigDecimal amount;
     private BigDecimal fee;
-    private String currency;
+    private String payment_method;
     private String status;
-    private String reference;
 }

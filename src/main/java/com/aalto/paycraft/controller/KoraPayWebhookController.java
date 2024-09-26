@@ -23,13 +23,12 @@ public class KoraPayWebhookController {
     private static final Logger logger = LoggerFactory.getLogger(KoraPayWebhookController.class);
 
     @PostMapping("/webhook")
-    public ResponseEntity<String> handleKoraPayWebHook(
-            @RequestBody WebhookResponseDTO payload,
-            @RequestHeader("x-kora-signature") String signature) {
+    public ResponseEntity<String> handleKoraPayWebHook(@RequestBody WebhookResponseDTO payload, @RequestHeader("X-Korapay-Signature") String signature) {
 
         try {
-            logger.info("Received KoraPay webhook: {}", payload);
-            return webhookService.verifyWebHook(payload, signature);
+            logger.info("Received KoraPay Webhook String: {}", payload.toString());
+            return ResponseEntity.status(200).body(webhookService.verifyWebHook(payload, signature));
+
         } catch (JsonProcessingException e) {
             logger.error("Error processing KoraPay webhook", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid payload");
