@@ -27,6 +27,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j @Service @RequiredArgsConstructor
 public class WalletServiceImpl implements IWalletService {
@@ -42,6 +43,8 @@ public class WalletServiceImpl implements IWalletService {
     private static final String VBA = "/virtual-bank-account";
     private static final String FUND = "charges/bank-transfer";
     private static final String VBATransaction = "/virtual-bank-account/transactions";
+
+    private static final char[] HEX_ARRAY = "0123456789abcdef".toCharArray();
 
     @Override
     public VirtualAccount createVirtualAccount(Employer employer) {
@@ -116,11 +119,9 @@ public class WalletServiceImpl implements IWalletService {
             // Convert request body to JSON
             String requestBodyJson = jacksonObjectMapper.writeValueAsString(requestBody);
             String url = BASE_URL + FUND;
-            log.info(url);
 
             // Generate the HMAC-SHA256 signature
             String signature = generateSignature(requestBodyJson, SECRET_KEY);
-
             // Build the request
 
             // Build the request
@@ -128,26 +129,21 @@ public class WalletServiceImpl implements IWalletService {
                     .uri(URI.create(url))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + SECRET_KEY)
-                    .header("x-korapay-signature", signature)
+//                    .header("X-Korapay-Signature", signature)
                     .POST(HttpRequest.BodyPublishers.ofString(requestBodyJson))
                     .build();
 
             // Send the request and get the response
             httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info(httpResponse.body());
 
             // Parse the response
             if (httpResponse.statusCode() == 200) {
                 response = jacksonObjectMapper.readValue(httpResponse.body(),
                         new TypeReference<DefaultKoraResponse<BankTransferResponseDTO>>() {});
                 log.info("Bank transfer initiated successfully for Employer with email {}", employer.getEmailAddress());
-
-                log.info(response.toString());
-                log.info(httpResponse.body());
-
                 return ResponseEntity.status(HttpStatus.OK).body(response).getBody();
             } else {
-                log.error("Failed to initiate bank transfer: {}", httpResponse.body().substring(0, 40));
+                log.error("Failed to initiate bank transfer: {}", httpResponse.body());
             }
         } catch (Exception e) {
             log.error("Error while initiating bank transfer: {}", e.getMessage());
@@ -158,11 +154,12 @@ public class WalletServiceImpl implements IWalletService {
 
     private static Map<String, Object> createRequestBodyForTransfer(BigDecimal amount, String currency, Employer employer) {
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("account_name", employer.getLastName());
+        requestBody.put("account_name", String.format("%s %s", employer.getFirstName(), employer.getLastName()));
         requestBody.put("amount", amount);
         requestBody.put("currency", currency);
-        requestBody.put("reference", employer.getVirtualAccount().getAccountReference());  // Unique reference for each transaction
-        requestBody.put("notification_url", "http://localhost:6020/webhook/korapay");  // webhook URL
+        requestBody.put("reference", UUID.randomUUID().toString());  // Unique reference for each transaction
+        requestBody.put("merchant_bears_cost", false);
+        requestBody.put("notification_url", "https://74da-102-67-5-2.ngrok-free.app/webhook");  // webhook URL
 
         // Customer information
         Map<String, String> customer = new HashMap<>();
@@ -170,7 +167,6 @@ public class WalletServiceImpl implements IWalletService {
         customer.put("email", employer.getEmailAddress());
         requestBody.put("customer", customer);
 
-        log.info(requestBody.toString());
         return requestBody;
     }
 
@@ -201,14 +197,18 @@ public class WalletServiceImpl implements IWalletService {
         SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         sha256_HMAC.init(secretKeySpec);
 
-        byte[] hmacData = sha256_HMAC.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+        // Generate the HMAC hash
+        byte[] hash = sha256_HMAC.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+        return bytesToHex(hash);
+    }
 
-        // Convert the hash to hexadecimal format
-        StringBuilder result = new StringBuilder();
-        for (byte b : hmacData) {
-            result.append(String.format("%02x", b));
+    private static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = HEX_ARRAY[v >> 4];
+            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
         }
-
-        return result.toString();
+        return new String(hexChars);
     }
 }

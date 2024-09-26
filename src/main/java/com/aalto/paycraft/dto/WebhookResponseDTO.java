@@ -9,5 +9,5 @@ import lombok.Data;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WebhookResponseDTO {
     private String event;
-    private WebhookResponseDTO data;
+    private WebhookResponseData data;
 }

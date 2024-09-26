@@ -13,4 +13,12 @@ public interface IWalletService {
     VirtualAccount createVirtualAccount(Employer employer);
     // New method to initiate a bank transfer
     DefaultKoraResponse<BankTransferResponseDTO> initiateBankTransfer(BigDecimal amount, String currency, Employer employer);
+//    void cardFundingWithAPI();
+//    void flexibleCardFundingAPI();
+//    void payWithPayOutApi();
+//    void payWithBulkPayOutApi();
+//    void verifyPayoutTransaction();
+
+//    https://webhook.site/d64965eb-84cb-4e4f-9d48-fd9b5360a029
+
 }
