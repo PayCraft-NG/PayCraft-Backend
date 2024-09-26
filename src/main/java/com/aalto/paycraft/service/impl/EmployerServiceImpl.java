@@ -74,9 +74,9 @@ public class EmployerServiceImpl implements IEmployerService {
 
         // Save the employer profile
         employerRepository.save(employer);
-        VirtualAccount account = walletService.createVirtualAccount(employer);
-        employer.setVirtualAccount(account);
-        employerRepository.save(employer);
+//        VirtualAccount account = walletService.createVirtualAccount(employer);
+//        employer.setVirtualAccount(account);
+//        employerRepository.save(employer);
 
         log.info("===== EmailService status: {} =====", enableEmail);
         if (enableEmail){
@@ -92,7 +92,7 @@ public class EmployerServiceImpl implements IEmployerService {
                         .firstName(employer.getFirstName())
                         .lastName(employer.getLastName())
                         .emailAddress(employer.getEmailAddress())
-                        .virtualAccountId(employer.getVirtualAccount().getAccountId())
+                        .virtualAccountId(null)
                         .build()
         );
         return response;
