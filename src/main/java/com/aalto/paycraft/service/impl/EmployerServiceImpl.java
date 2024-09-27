@@ -7,7 +7,6 @@ import com.aalto.paycraft.dto.EmployerPasswordUpdateDTO;
 import com.aalto.paycraft.dto.EmployerUpdateDTO;
 import com.aalto.paycraft.entity.AuthToken;
 import com.aalto.paycraft.entity.Employer;
-import com.aalto.paycraft.entity.VirtualAccount;
 import com.aalto.paycraft.exception.EmployerAlreadyExists;
 import com.aalto.paycraft.exception.EmployerNotFound;
 import com.aalto.paycraft.exception.PasswordUpdateException;
@@ -16,7 +15,7 @@ import com.aalto.paycraft.repository.AuthTokenRepository;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.service.IEmailService;
 import com.aalto.paycraft.service.IEmployerService;
-import com.aalto.paycraft.service.IWalletService;
+import com.aalto.paycraft.service.IKoraPayService;
 import com.aalto.paycraft.service.JWTService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -43,7 +42,7 @@ public class EmployerServiceImpl implements IEmployerService {
     private final PasswordEncoder passwordEncoder;
     private final AuthTokenRepository tokenRepository;
     private final IEmailService emailService;
-    private final IWalletService walletService;
+    private final IKoraPayService walletService;
     private final JWTService jwtService;
     private final HttpServletRequest request;
 
@@ -74,10 +73,6 @@ public class EmployerServiceImpl implements IEmployerService {
 
         // Save the employer profile
         employerRepository.save(employer);
-//        VirtualAccount account = walletService.createVirtualAccount(employer);
-//        employer.setVirtualAccount(account);
-//        employerRepository.save(employer);
-
         log.info("===== EmailService status: {} =====", enableEmail);
         if (enableEmail){
 //            emailService.sendEmail(employer.getEmailAddress(), "Sign up Success!", createEmailContext(employer.getFirstName()), "signup");
@@ -92,7 +87,6 @@ public class EmployerServiceImpl implements IEmployerService {
                         .firstName(employer.getFirstName())
                         .lastName(employer.getLastName())
                         .emailAddress(employer.getEmailAddress())
-                        .virtualAccountId(null)
                         .build()
         );
         return response;
