@@ -6,7 +6,6 @@ import com.aalto.paycraft.dto.EmployeeDto;
 import com.aalto.paycraft.dto.EmployeeRequestDto;
 import com.aalto.paycraft.entity.Company;
 import com.aalto.paycraft.entity.Employee;
-import com.aalto.paycraft.exception.PasswordUpdateException;
 import com.aalto.paycraft.mapper.EmployeeMapper;
 import com.aalto.paycraft.repository.CompanyRepository;
 import com.aalto.paycraft.repository.EmployeeRepository;
@@ -19,10 +18,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service @RequiredArgsConstructor @Slf4j
 public class EmployeeServiceImpl implements IEmployeeService {
@@ -65,6 +66,26 @@ public class EmployeeServiceImpl implements IEmployeeService {
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
         response.setStatusMessage("Employee Profile Created Successfully");
         response.setData(EmployeeMapper.toDTO(employee));
+        return response;
+    }
+
+    @Override
+    public DefaultApiResponse<List<EmployeeDto>> getAllEmployees() {
+        DefaultApiResponse<List<EmployeeDto>> response = new DefaultApiResponse<>();
+
+        // Fetch all non-deleted employees from the repository
+        List<Employee> employees = employeeRepository.findAllByDeletedFalse();
+
+        // Map the list of Employee entities to a list of EmployeeDto objects
+        List<EmployeeDto> employeeDtos = employees.stream()
+                .map(EmployeeMapper::toDTO)
+                .collect(Collectors.toList());
+
+        // Set response details
+        response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
+        response.setStatusMessage("Employee Profiles Retrieved Successfully");
+        response.setData(employeeDtos);
+
         return response;
     }
 

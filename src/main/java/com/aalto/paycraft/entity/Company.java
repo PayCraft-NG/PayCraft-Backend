@@ -14,7 +14,6 @@ import java.util.UUID;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString
 @Table(name = "Company")
 public class Company extends BaseEntity {
     @Id
