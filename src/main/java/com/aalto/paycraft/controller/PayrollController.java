@@ -40,18 +40,6 @@ public class PayrollController {
                 .body(iPayrollService.createPayroll(payrollDTO));
     }
 
-    @Operation(summary = "Delete a payroll by ID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Payroll deleted successfully"),
-            @ApiResponse(responseCode = "404", description = "Payroll not found")
-    })
-    @DeleteMapping(value = "/delete/{payrollId}")
-    public ResponseEntity<DefaultApiResponse<PayrollDTO>> deletePayroll(
-            @Valid @PathVariable("payrollId") UUID payrollId) {
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(iPayrollService.deletePayroll(payrollId));
-    }
-
     @Operation(summary = "Add an employee to a payroll")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employee added to payroll"),
@@ -78,6 +66,32 @@ public class PayrollController {
                 .body(iPayrollService.removeEmployee(payrollId, employeeId));
     }
 
+    @Operation(summary = "Update a payroll by ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payroll updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input"),
+            @ApiResponse(responseCode = "404", description = "Payroll not found")
+    })
+    @PutMapping(value = "/update/{payrollId}")
+    public ResponseEntity<DefaultApiResponse<PayrollDTO>> updatePayroll(
+            @Valid @RequestBody PayrollUpdateDTO payrollUpdateDTO,
+            @Valid @PathVariable("payrollId") UUID payrollId) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(iPayrollService.updatePayroll(payrollUpdateDTO, payrollId));
+    }
+
+    @Operation(summary = "Delete a payroll by ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payroll deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Payroll not found")
+    })
+    @DeleteMapping(value = "/delete/{payrollId}")
+    public ResponseEntity<DefaultApiResponse<PayrollDTO>> deletePayroll(
+            @Valid @PathVariable("payrollId") UUID payrollId) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(iPayrollService.deletePayroll(payrollId));
+    }
+
     @Operation(summary = "Get all employees by payroll ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "List of employees retrieved"),
@@ -102,17 +116,14 @@ public class PayrollController {
                 .body(iPayrollService.getPayroll(payrollId));
     }
 
-    @Operation(summary = "Update a payroll by ID")
+    @Operation(summary = "Get All payroll related to the Company")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Payroll updated successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid input"),
-            @ApiResponse(responseCode = "404", description = "Payroll not found")
+            @ApiResponse(responseCode = "200", description = "Payrolls retrieved"),
+            @ApiResponse(responseCode = "404", description = "Payrolls not found")
     })
-    @PutMapping(value = "/update/{payrollId}")
-    public ResponseEntity<DefaultApiResponse<PayrollDTO>> updatePayroll(
-            @Valid @RequestBody PayrollUpdateDTO payrollUpdateDTO,
-            @Valid @PathVariable("payrollId") UUID payrollId) {
+    @GetMapping(value = "/{payrollId}")
+    public ResponseEntity<DefaultApiResponse<List<PayrollDTO>>> getAllPayroll() {
         return ResponseEntity.status(HttpStatus.OK)
-                .body(iPayrollService.updatePayroll(payrollUpdateDTO, payrollId));
+                .body(iPayrollService.getAllPayroll());
     }
 }
