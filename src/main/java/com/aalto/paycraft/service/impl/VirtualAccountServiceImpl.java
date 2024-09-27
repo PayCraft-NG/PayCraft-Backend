@@ -209,12 +209,20 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
     public DefaultApiResponse<?> verifyBankTransfer(String referenceNumber){
         DefaultApiResponse<?> response = new DefaultApiResponse<>();
 
+        VirtualAccount virtualAccount = new VirtualAccount();
+        Optional<VirtualAccount> optionalVirtualAccount =
+                virtualAccountRepository.findByEmployer_EmployerId(EMPLOYER().getEmployerId());
+        if(optionalVirtualAccount.isPresent()) virtualAccount = optionalVirtualAccount.get();
+
         WebhookData webhookData = new WebhookData();
         Optional<WebhookData> webhookDataOptional = webhookDataRepository.findByReference(referenceNumber);
         if(webhookDataOptional.isPresent()){
             webhookData = webhookDataOptional.get();
         }
         if(webhookData.getEvent().equals("charge.success")){
+
+            virtualAccount.setBalance(webhookData.getAmount());
+            virtualAccountRepository.save(virtualAccount);
             response.setStatusCode("00");
             response.setStatusMessage("Bank transfer successfully");
         }else {
