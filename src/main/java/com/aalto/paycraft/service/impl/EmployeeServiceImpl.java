@@ -74,7 +74,7 @@ public class EmployeeServiceImpl implements IEmployeeService {
         DefaultApiResponse<List<EmployeeDto>> response = new DefaultApiResponse<>();
 
         // Fetch all non-deleted employees from the repository
-        List<Employee> employees = employeeRepository.findAllByDeletedFalse();
+        List<Employee> employees = employeeRepository.findAllByDeletedFalseAndCompanyId(COMPANY_ID());
 
         // Map the list of Employee entities to a list of EmployeeDto objects
         List<EmployeeDto> employeeDtos = employees.stream()
