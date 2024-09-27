@@ -244,9 +244,9 @@ public class EmployerServiceImpl implements IEmployerService {
         }
     }
 
-    private Context createEmailContext(String firstName, String frontendUrl){
+    private static Context createEmailContext(String firstName, String frontendUrl){
         Context emailContext = new Context();
-        emailContext.setVariable("username", firstName);
+        emailContext.setVariable("name", firstName);
         emailContext.setVariable("paycraftURL", frontendUrl);
         return emailContext;
     }
