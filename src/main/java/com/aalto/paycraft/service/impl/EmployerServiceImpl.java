@@ -15,6 +15,7 @@ import com.aalto.paycraft.repository.AuthTokenRepository;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.service.IEmailService;
 import com.aalto.paycraft.service.IEmployerService;
+import com.aalto.paycraft.service.IKoraPayService;
 import com.aalto.paycraft.service.JWTService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -41,6 +42,7 @@ public class EmployerServiceImpl implements IEmployerService {
     private final PasswordEncoder passwordEncoder;
     private final AuthTokenRepository tokenRepository;
     private final IEmailService emailService;
+    private final IKoraPayService walletService;
     private final JWTService jwtService;
     private final HttpServletRequest request;
 
@@ -71,14 +73,9 @@ public class EmployerServiceImpl implements IEmployerService {
 
         // Save the employer profile
         employerRepository.save(employer);
-
         log.info("===== EmailService status: {} =====", enableEmail);
         if (enableEmail){
-            log.info("Emails Works");
-//            emailService.sendEmail(employer.getEmailAddress(),
-//                    "Sign up Success!",
-//                    createEmailContext(employer.getFirstName()),
-//                    "signup");
+//            emailService.sendEmail(employer.getEmailAddress(), "Sign up Success!", createEmailContext(employer.getFirstName()), "signup");
         }
 
         response.setStatusCode(PayCraftConstant.ONBOARD_SUCCESS);

@@ -110,20 +110,22 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
                 Employer employer = existingUserAccount.get();
 
                 log.info("Verifying Token is valid and properly signed for user {}.", userEmail);
-                if(jwtService.isTokenValid(requestBody.refreshToken(), employer)){
+                if(jwtService.isRefreshTokenValid(requestBody.refreshToken(), employer)){
                     log.info("Generating New Token for user {}.", userEmail);
 
-                    String newAccessToken = jwtService.createJWT(employer, employer.getCompanies().get(0).getCompanyId());
-                    String newRefreshToken = jwtService.generateRefreshToken(generateRefreshTokenClaims(employer), employer);
+                    accessAndRefreshToken result = getGenerateAccessTokenAndRefreshToken(employer);
+
+//                    String newAccessToken = jwtService.createJWT(employer, employer.getCompanies().get(0).getCompanyId());
+//                    String newRefreshToken = jwtService.generateRefreshToken(generateRefreshTokenClaims(employer), employer);
 
                     // Revoke old tokens and save the new tokens
                     revokeOldTokens(employer);
-                    saveUserAccountToken(employer, newAccessToken, newRefreshToken);
+                    saveUserAccountToken(employer, result.accessToken, result.refreshToken);
 
                     response.setStatusCode(REFRESH_TOKEN_SUCCESS);
                     response.setStatusMessage("Successfully Refreshed AuthToken");
                     AuthorizationResponseDto responseDto = new AuthorizationResponseDto(
-                            newAccessToken, newRefreshToken, getLastUpdatedAt(), "1hr", "24hrs");
+                            result.accessToken, result.refreshToken, getLastUpdatedAt(), "1hr", "24hrs");
                     response.setData(responseDto);
                 } else {
                     log.warn("Invalid Token signature for user {}.", userEmail);

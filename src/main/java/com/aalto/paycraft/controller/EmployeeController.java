@@ -15,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Tag(
@@ -47,6 +48,25 @@ public class EmployeeController {
     public ResponseEntity<DefaultApiResponse<EmployeeDto>> createEmployee(@Valid @RequestBody EmployeeRequestDto requestBody){
         DefaultApiResponse<EmployeeDto> response = employeeService.createEmployee(requestBody);
         return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    /**
+     * Endpoint for retrieving a list of all non-deleted employee profiles.
+     *
+     * @return A response entity containing the list of employee profiles, status message, and the HTTP status code.
+     */
+    @Operation(
+            summary = "Get All Employees REST API",
+            description = "REST API to get all non-deleted employee profiles"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Employee profiles successfully retrieved"
+    )
+    @GetMapping // This will handle GET requests to /employees
+    public ResponseEntity<DefaultApiResponse<List<EmployeeDto>>> getEmployees() {
+        DefaultApiResponse<List<EmployeeDto>> response = employeeService.getAllEmployees(); // Call the service method
+        return ResponseEntity.status(HttpStatus.OK).body(response); // Return the response with OK status
     }
 
     /**
