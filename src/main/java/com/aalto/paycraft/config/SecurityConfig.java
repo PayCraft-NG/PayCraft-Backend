@@ -39,7 +39,6 @@ public class SecurityConfig {
                                 "api/v1/employer/create",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "api/v1/wallet/**",
                                 "api/v1/ussd",
                                 "api/v1/company/create",
                                 "/error**").permitAll() // Permits all Users to access Authentication Endpoints
@@ -59,8 +58,8 @@ public class SecurityConfig {
     @Bean
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.addAllowedOrigin("http://localhost:5173"); // Allows all origins (adjust it if you need to)
-        configuration.addAllowedOrigin("https://merchant.korapay.com/");
+        configuration.addAllowedOrigin("http://localhost:5173");
+        configuration.addAllowedOrigin("https://paycraft-dev.netlify.app");
         configuration.addAllowedMethod("*"); // Allows all methods
         configuration.addAllowedHeader("*"); // Allows all headers.
         configuration.setAllowCredentials(true);
