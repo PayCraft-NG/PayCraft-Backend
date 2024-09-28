@@ -15,7 +15,6 @@ import com.aalto.paycraft.repository.AuthTokenRepository;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.service.IEmailService;
 import com.aalto.paycraft.service.IEmployerService;
-import com.aalto.paycraft.service.IKoraPayService;
 import com.aalto.paycraft.service.JWTService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -42,7 +41,6 @@ public class EmployerServiceImpl implements IEmployerService {
     private final PasswordEncoder passwordEncoder;
     private final AuthTokenRepository tokenRepository;
     private final IEmailService emailService;
-    private final IKoraPayService walletService;
     private final JWTService jwtService;
     private final HttpServletRequest request;
 
@@ -61,6 +59,9 @@ public class EmployerServiceImpl implements IEmployerService {
     @Value("${spring.mail.enable}")
     private Boolean enableEmail;
 
+    @Value("${frontend.url}")
+    private String frontendUrl;
+
     @Override
     public DefaultApiResponse<EmployerDTO> createEmployer(EmployerDTO employerDTO) {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
@@ -74,11 +75,17 @@ public class EmployerServiceImpl implements IEmployerService {
 
         // Save the employer profile
         employerRepository.save(employer);
-        log.info("Email service enabled: {}", enableEmail);
-        if (enableEmail) {
-            // Send a signup success email
-            // emailService.sendEmail(employer.getEmailAddress(), "Sign up Success!", createEmailContext(employer.getFirstName()), "signup");
+        //====== Email Service ======//
+        if (enableEmail){
+            log.info("===== Email Enabled =====");
+           emailService.sendEmail(employer.getEmailAddress(),
+                   "Welcome to PayCraft",
+                   createEmailContext(employer.getFirstName(), frontendUrl),
+                   "signup");
         }
+        else
+            log.info("===== Email Disabled =====");
+        //====== Email Service ======//
 
         // Set response details
         response.setStatusCode(PayCraftConstant.ONBOARD_SUCCESS);
@@ -242,11 +249,11 @@ public class EmployerServiceImpl implements IEmployerService {
             destEmployer.setPhoneNumber(srcEmployerDTO.getPhoneNumber());
         }
     }
-
-    // Create email context for sending emails
-    private static Context createEmailContext(String firstName) {
+  
+    private static Context createEmailContext(String firstName, String frontendUrl){
         Context emailContext = new Context();
-        emailContext.setVariable("name", firstName);
+        emailContext.setVariable("username", firstName);
+        emailContext.setVariable("paycraftURL", frontendUrl);
         return emailContext;
     }
 

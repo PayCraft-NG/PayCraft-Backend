@@ -8,6 +8,7 @@ import com.aalto.paycraft.entity.WebhookData;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.repository.VirtualAccountRepository;
 import com.aalto.paycraft.repository.WebhookDataRepository;
+import com.aalto.paycraft.service.IEmailService;
 import com.aalto.paycraft.service.IKoraPayService;
 import com.aalto.paycraft.service.IVirtualAccountService;
 import com.aalto.paycraft.service.JWTService;
@@ -16,7 +17,9 @@ import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.context.Context;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -38,6 +41,13 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
     private final EmployerRepository employerRepository;
     private final JWTService jwtService;
     private final HttpServletRequest request;
+    private final IEmailService emailService;
+
+    @Value("${spring.mail.enable}")
+    private Boolean enableEmail;
+
+    @Value("${frontend.url}")
+    private String frontendUrl;
 
     // Extract the AccessToken from the incoming request
     private String EMPLOYER_ACCESS_TOKEN() {
@@ -123,6 +133,50 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
             throw new RuntimeException(e);
         }
 
+        if(responseBody.getMessage().equals("Virtual bank account created successfully")){
+            VirtualAccountResponseDTO data = responseBody.getData();
+            virtualAccount = VirtualAccount.builder()
+                .accountNumber(data.getAccount_number())
+                .accountReference(data.getAccount_reference())
+                .koraAccountReference(data.getUnique_id())
+                .bankCode(data.getBank_code())
+                .bankName(data.getBank_name())
+                .accountStatus(data.getAccount_status())
+                .balance(BigDecimal.ZERO)
+                .currency(Currency.valueOf(data.getCurrency()))
+                .employer(EMPLOYER()).build();
+
+            VirtualAccount savedVirtualAccount = virtualAccountRepository.save(virtualAccount);
+
+            //====== Email Service ======//
+            if (enableEmail){
+                log.info("===== Email Enabled =====");
+                emailService.sendEmail(EMPLOYER().getEmailAddress(),
+                        "Account Created",
+                        createEmailContextAccountCreated(EMPLOYER().getFirstName(), frontendUrl, data.getAccount_number()),
+                        "accountCreated");
+            }
+            else
+                log.info("===== Email Disabled =====");
+            //====== Email Service ======//
+
+            response.setStatusCode("00");
+            response.setStatusMessage("Virtual bank account created successfully");
+            virtualAccountDTO = VirtualAccountDTO.builder()
+                    .virtualAccountId(String.valueOf(savedVirtualAccount.getAccountId()))
+                    .accountNumber(savedVirtualAccount.getAccountNumber())
+                    .bankCode(savedVirtualAccount.getBankCode())
+                    .bankName(savedVirtualAccount.getBankName())
+                    .accountStatus(savedVirtualAccount.getAccountStatus())
+                    .balance(savedVirtualAccount.getBalance())
+                    .currency(savedVirtualAccount.getCurrency())
+                    .employerId(String.valueOf(EMPLOYER().getEmployerId())).build();
+            response.setData(virtualAccountDTO);
+        }else{
+            response.setStatusCode("49");
+            response.setStatusMessage("Unable to create virtual account");
+            return response;
+        }
         return response;
     }
 
@@ -262,12 +316,37 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
             throw new RuntimeException(e);
         }
 
+        log.info("response ====> {}", responseBody);
+
+        if(responseBody.getMessage().equals("Bank transfer initiated successfully")){
+            BankTransferResponseDTO data = responseBody.getData();
+
+            BankTransferDetailsDTO detailsForTransfer = BankTransferDetailsDTO.builder()
+                    .amount(BigDecimal.valueOf(data.getAmount()))
+                    .amountExpected(BigDecimal.valueOf(data.getAmount_expected()))
+                    .referenceNumber(data.getReference())
+                    .paymentReference(data.getPayment_reference())
+                    .accountName(data.getBank_account().getAccount_name())
+                    .accountNumber(data.getBank_account().getAccount_number())
+                    .bankName(data.getBank_account().getBank_name())
+                    .expiryDate(String.valueOf(data.getBank_account().getExpiry_date_in_utc()))
+                    .build();
+
+            response.setStatusCode("00");
+            response.setStatusMessage("Bank transfer created successfully");
+            response.setData(detailsForTransfer);
+        }else {
+            response.setStatusCode("49");
+            response.setStatusMessage("Bank transfer initialization failed");
+            return response;
+        }
         return response;
     }
 
     @Override
     public DefaultApiResponse<?> verifyBankTransfer(String referenceNumber) {
         DefaultApiResponse<?> response = new DefaultApiResponse<>();
+
 
         try {
             // Retrieve virtual account linked to employer
@@ -286,6 +365,20 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
                     if (webhookData.getEvent().equals("charge.success")) {
                         virtualAccount.setBalance(webhookData.getAmount());
                         virtualAccountRepository.save(virtualAccount);
+                      
+                    //====== Email Service ======//
+                    if (enableEmail){
+                        log.info("===== Email Enabled (credited) =====");
+                        emailService.sendEmail(EMPLOYER().getEmailAddress(),
+                                "Account Credited",
+                                createEmailContextAccountCredited(EMPLOYER().getFirstName(), frontendUrl, referenceNumber, webhookData.getAmount()),
+                                "accountCredited");
+                    }
+                    else
+                        log.info("===== Email Disabled (credited) =====");
+
+                    //====== Email Service ======//
+                      
                         response.setStatusCode("00");
                         response.setStatusMessage("Bank transfer successful");
                     } else {
@@ -301,5 +394,24 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
         }
 
         return response;
+    }
+
+
+    // These could be better... I don't have the luxury of time to optimize
+    private static Context createEmailContextAccountCreated(String firstName, String frontendUrl, String accountNumber){
+        Context emailContext = new Context();
+        emailContext.setVariable("username", firstName);
+        emailContext.setVariable("paycraftURL", frontendUrl);
+        emailContext.setVariable("accountNumber", accountNumber);
+        return emailContext;
+    }
+
+    private static Context createEmailContextAccountCredited(String firstName, String frontendUrl, String referenceNumber, BigDecimal amount){
+        Context emailContext = new Context();
+        emailContext.setVariable("username", firstName);
+        emailContext.setVariable("paycraftURL", frontendUrl);
+        emailContext.setVariable("referenceNumber", referenceNumber);
+        emailContext.setVariable("amount", amount);
+        return emailContext;
     }
 }

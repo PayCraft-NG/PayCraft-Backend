@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payroll Just Ran</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        a {
+            color: #800080;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <h1>Payroll Just Ran</h1>
+    <hr>
+    <p>Hi <span th:text="${username}"></span>,</p>
+    <p>We are pleased to inform you that the payroll: <span th:text="${payrollID}"></span> has just been successfully processed.
+        You can review the details and access your payment history in your account.</p>
+    <p>If you have any questions or require further information, feel free to reach out.</p>
+    <br>
+    <p>Best regards,</p>
+    <p>The PayCraft Team</p>
+    <p class="footer">
+        <a th:href="@{${paycraftURL}}">Visit PayCraft</a>
+    </p>
+</div>
+</body>
+</html>
