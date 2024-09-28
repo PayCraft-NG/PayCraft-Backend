@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -30,6 +31,9 @@ public class KoraPayServiceImpl implements IKoraPayService {
 
     @Value("${encryption-key}")
     private String ENCRYPTION_KEY;
+
+    @Value("${kora-public}")
+    private String PUBLIC_KEY;
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper jacksonObjectMapper;
@@ -229,4 +233,229 @@ public class KoraPayServiceImpl implements IKoraPayService {
         transactionReference = UUID.randomUUID().toString().substring(0, 12).replace("-", "");
         return transactionReference;
     }
+
+
+    // ================ PAYOUT RELATED OPTIONS ============
+
+    public DefaultKoraResponse<List<BankTypeDTO>> listBanks() throws Exception {
+        DefaultKoraResponse<List<BankTypeDTO>> response = new DefaultKoraResponse<>();
+
+        // Create HTTP GET request to fetch all available bank codes for Nigeria
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create( BASE_URL + "misc/banks?countryCode=NG"))
+                .header("Authorization", "Bearer " + PUBLIC_KEY)
+                .header("Content-Type", "application/json")
+                .GET()
+                .build();
+
+        HttpResponse<String> httpResponse;
+        try {
+            // Send the request and receive the response
+            httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e); // Log and rethrow any errors
+        }
+
+        if (httpResponse.statusCode() == 200) {
+            // Parse the response body to List<BankTypeDTO> if status code is 200 (OK)
+            response = jacksonObjectMapper.readValue(httpResponse.body(),
+                    new TypeReference<DefaultKoraResponse<List<BankTypeDTO>>>() {});
+
+            log.info("Request for all available bank codes successful: Nigeria Only");
+        } else {
+            response.setStatus(false);  // Set status to false in case of failure
+            response.setMessage("Error Initiating Bank Transfer: ");
+        }
+
+        return response;  // Return the final response
+    }
+
+    public DefaultKoraResponse<BankTypeDTO> resolveBankAccount(String bankCode, String accountNumber) throws Exception {
+        DefaultKoraResponse<BankTypeDTO> response = new DefaultKoraResponse<>();
+
+        // Prepare request payload (bankCode and accountNumber)
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("bank", bankCode);
+        requestBody.put("account", accountNumber);
+
+        // Convert request body to JSON format
+        String requestBodyJson = jacksonObjectMapper.writeValueAsString(requestBody);
+
+        // Create HTTP POST request to resolve bank account details
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "misc/banks/resolve"))
+                .header("Authorization", "Bearer " + PUBLIC_KEY)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(requestBodyJson))
+                .build();
+
+        HttpResponse<String> httpResponse;
+        try {
+            // Send the request and capture the response
+            httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (httpResponse.statusCode() == 200) {
+            // Deserialize the response body into BankTypeDTO if successful
+            response = jacksonObjectMapper.readValue(httpResponse.body(),
+                    new TypeReference<DefaultKoraResponse<BankTypeDTO>>() {});
+
+            log.info("Bank account resolved: {}", response.getData());
+        } else {
+            response.setStatus(false);  // Set error status if request fails
+            response.setMessage("Error Initiating Bank Transfer: ");
+        }
+
+        return response;  // Return the resolved bank account details
+    }
+
+    public DefaultKoraResponse<PayoutResponseDTO> requestPayout(String bankCode, String accountNumber, BigDecimal amount, Employer employer) throws Exception {
+        DefaultKoraResponse<PayoutResponseDTO> response = new DefaultKoraResponse<>();
+
+        // Generate the request body for a payout
+        Map<String, Object> requestBody = generatePayoutRequestBody(amount, employer, bankCode, accountNumber, "NGN");
+
+        // Convert the request body to JSON format
+        String requestBodyJson = jacksonObjectMapper.writeValueAsString(requestBody);
+
+        // Create HTTP POST request to initiate a payout
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "transactions/disburse"))
+                .header("Authorization", "Bearer " + SECRET_KEY)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(requestBodyJson))
+                .build();
+
+        HttpResponse<String> httpResponse;
+        try {
+            // Send the request and capture the response
+            httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (httpResponse.statusCode() == 200) {
+            // Deserialize the response into PayoutResponseDTO if successful
+            response = jacksonObjectMapper.readValue(httpResponse.body(),
+                    new TypeReference<DefaultKoraResponse<PayoutResponseDTO>>() {});
+
+            log.info("Payout Request Successful: {}", response.getData());
+        } else {
+            response.setStatus(false);  // Set failure status in case of error
+            response.setMessage("Error Initiating Bank Transfer: ");
+        }
+
+        return response;  // Return the payout response
+    }
+
+    public DefaultKoraResponse<BulkPayoutResponseDTO> requestBulkPayout(List<PayoutData> payrollList, Employer employer) throws Exception {
+        DefaultKoraResponse<BulkPayoutResponseDTO> response = new DefaultKoraResponse<>();
+
+        // Generate the request body for a bulk payout
+        Map<String, Object> requestBody = generateBulkPayoutRequestBody(payrollList, employer);
+
+        // Convert the request body to JSON format
+        String requestBodyJson = jacksonObjectMapper.writeValueAsString(requestBody);
+
+        // Create HTTP POST request for bulk payouts
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "transactions/disburse/bulk"))
+                .header("Authorization", "Bearer " + SECRET_KEY)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(requestBodyJson))
+                .build();
+
+        HttpResponse<String> httpResponse;
+        try {
+            // Send the request and capture the response
+            httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (httpResponse.statusCode() == 200) {
+            // Deserialize the response body into BulkPayoutResponseDTO if successful
+            response = jacksonObjectMapper.readValue(httpResponse.body(),
+                    new TypeReference<DefaultKoraResponse<BulkPayoutResponseDTO>>() {});
+
+            log.info("Bulk Payout Request Successful: {}", response.getData());
+        } else {
+            response.setStatus(false);  // Set failure status in case of error
+            response.setMessage("Error Initiating Bank Transfer: ");
+        }
+
+        return response;  // Return the bulk payout response
+    }
+
+    // Helper method to generate the request body for a single payout
+    private Map<String, Object> generatePayoutRequestBody(BigDecimal amount, Employer employer, String bankCode, String accountNumber, String currency) {
+        // 044, 033, 058 - Allowed Bank Codes for Success
+
+        HashMap<String, Object> requestBody = new HashMap<>();
+        requestBody.put("reference", generateRef() + "-" + employer.getLastName().toLowerCase());
+
+        // Create the 'destination' HashMap
+        HashMap<String, Object> destination = new HashMap<>();
+        destination.put("type", "bank_account");
+        destination.put("amount", amount);
+        destination.put("narration", "Salary Payment");
+
+        // Optionally add currency if provided
+        if (currency != null) {
+            destination.put("currency", currency);
+        }
+
+        // Create the 'bank_account' HashMap
+        HashMap<String, String> bankAccount = new HashMap<>();
+        bankAccount.put("bank", bankCode);
+        bankAccount.put("account", accountNumber);
+
+        // Add the 'bank_account' to 'destination'
+        destination.put("bank_account", bankAccount);
+
+        // Create the 'customer' HashMap
+        HashMap<String, String> customer = new HashMap<>();
+        customer.put("email", employer.getEmailAddress());
+
+        // Add the 'customer' to 'destination'
+        destination.put("customer", customer);
+
+        // Return the complete request body
+        return requestBody;
+    }
+
+    // Helper method to generate the request body for a bulk payout
+    private Map<String, Object> generateBulkPayoutRequestBody(List<PayoutData> payoutDataList, Employer employer) {
+        HashMap<String, Object> requestBody = new HashMap<>();
+
+        // Set the batch reference and description
+        requestBody.put("batch_reference", generateRef());
+        requestBody.put("description", "test bulk transfer");
+        requestBody.put("merchant_bears_cost", true);
+        requestBody.put("currency", "NGN");
+
+        // Initialize the list of payouts
+        List<Map<String, Object>> payouts = new ArrayList<>();
+
+        // Loop through the payout data and generate each payout request
+        for (PayoutData payoutData : payoutDataList) {
+            Map<String, Object> payoutRequest = generatePayoutRequestBody(
+                    payoutData.getAmount(),
+                    employer,
+                    payoutData.getBankCode(),
+                    payoutData.getAccountNumber(),
+                    null
+            );
+            payouts.add(payoutRequest);  // Add each payout request to the list
+        }
+
+        // Add the list of payouts to the request body
+        requestBody.put("payouts", payouts);
+
+        // Return the complete request body for bulk payout
+        return requestBody;
+    }
+
 }
