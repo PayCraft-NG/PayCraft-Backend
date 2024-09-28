@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 public interface IVirtualAccountService {
     // Virtual Account Details Related
     DefaultApiResponse<VirtualAccountDTO> createVirtualAccount();
+    DefaultApiResponse<VirtualAccountDTO> getVirtualAccount();
     DefaultApiResponse<VirtualAccountTransactionDTO> getTransactionsOfVba(String startDate, String endDate, Integer page, Integer limit);
 
     // Make Transfer Related Operations
