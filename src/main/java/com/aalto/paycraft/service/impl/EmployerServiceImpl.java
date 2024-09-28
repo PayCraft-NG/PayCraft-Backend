@@ -15,9 +15,9 @@ import com.aalto.paycraft.repository.AuthTokenRepository;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.service.IEmailService;
 import com.aalto.paycraft.service.IEmployerService;
+import com.aalto.paycraft.service.IKoraPayService;
 import com.aalto.paycraft.service.JWTService;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -41,18 +41,18 @@ public class EmployerServiceImpl implements IEmployerService {
     private final PasswordEncoder passwordEncoder;
     private final AuthTokenRepository tokenRepository;
     private final IEmailService emailService;
+    private final IKoraPayService walletService;
     private final JWTService jwtService;
     private final HttpServletRequest request;
 
-    // Gets the AccessToken from the Request Sent
-    private String EMPLOYER_ACCESS_TOKEN(){
-        return request.getHeader("Authorization").substring(7);
+    // Gets the AccessToken from the request header
+    private String EMPLOYER_ACCESS_TOKEN() {
+        return request.getHeader("Authorization").substring(7); // Removes "Bearer " prefix
     }
 
     // Get the ID of the employer making the request
-    private UUID EMPLOYER_ID(){
-        verifyTokenExpiration(EMPLOYER_ACCESS_TOKEN());
-        Claims claims = jwtService.extractClaims(EMPLOYER_ACCESS_TOKEN(), Function.identity());  // Function.identity() returns the same object
+    private UUID EMPLOYER_ID() {
+        Claims claims = jwtService.extractClaims(EMPLOYER_ACCESS_TOKEN(), Function.identity());
         return UUID.fromString((String) claims.get("userID"));
     }
 
@@ -66,27 +66,24 @@ public class EmployerServiceImpl implements IEmployerService {
     public DefaultApiResponse<EmployerDTO> createEmployer(EmployerDTO employerDTO) {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
 
-        verifyRecordPhoneNumberAndEmailAddress(employerDTO);
-
         // Map DTO to entity and encrypt the password
         Employer employer = EmployerMapper.toEntity(employerDTO);
         employer.setPassword(passwordEncoder.encode(employerDTO.getPassword()));
 
         // Save the employer profile
         employerRepository.save(employer);
-
-        log.info("===== EmailService status: {} =====", enableEmail);
-        if (enableEmail){
-            log.info("Emails Works");
-           emailService.sendEmail(employer.getEmailAddress(),
-                   "Welcome to PayCraft",
-                   createEmailContext(employer.getFirstName(), frontendUrl),
-                   "signup");
+        log.info("Email service enabled: {}", enableEmail);
+        if (enableEmail) {
+            log.info("Sending signup success email");
+            emailService.sendEmail(employer.getEmailAddress(),
+                    "Welcome to PayCraft",
+                    createEmailContext(employer.getFirstName(), frontendUrl),
+                    "signup");
         }
 
+        // Set response details
         response.setStatusCode(PayCraftConstant.ONBOARD_SUCCESS);
         response.setStatusMessage("Employer created successfully");
-        // Build the response DTO with saved data
         response.setData(
                 EmployerDTO.builder()
                         .employerId(employer.getEmployerId())
@@ -96,7 +93,6 @@ public class EmployerServiceImpl implements IEmployerService {
                         .build()
         );
         return response;
-
     }
 
     @Override
@@ -104,7 +100,8 @@ public class EmployerServiceImpl implements IEmployerService {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
         Employer employer = verifyAndFetchById(EMPLOYER_ID());
         EmployerDTO employerDTO = EmployerMapper.toDTO(employer);
-        // Prevent the password and bvn from being returned
+
+        // Prevent returning sensitive information
         employerDTO.setPassword(null);
         employerDTO.setBvn(null);
 
@@ -119,12 +116,11 @@ public class EmployerServiceImpl implements IEmployerService {
     public DefaultApiResponse<EmployerDTO> updateEmployer(EmployerUpdateDTO employerUpdateDTO) {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
         Employer employer = verifyAndFetchById(EMPLOYER_ID());
-        updateRecord(employer,employerUpdateDTO);
+        updateRecord(employer, employerUpdateDTO); // Update employer details
         employerRepository.save(employer);
 
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
         response.setStatusMessage("Employer updated successfully");
-        // Only the employer ID and updated attributes are returned
         response.setData(EmployerDTO.builder()
                 .employerId(employer.getEmployerId())
                 .phoneNumber(employer.getPhoneNumber())
@@ -143,11 +139,9 @@ public class EmployerServiceImpl implements IEmployerService {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
         Employer employer = verifyAndFetchById(EMPLOYER_ID());
 
-        // Soft delete it is
-        // However, there is a bug that prevents recreating the exact same account after it has been deleted.
-        // It's not a bug, it's a feature, wink!
+        // Soft delete the employer
         employer.setDeleted(true);
-        revokeAllTokens(employer);
+        revokeAllTokens(employer); // Revoke tokens
         employerRepository.save(employer);
 
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
@@ -167,20 +161,21 @@ public class EmployerServiceImpl implements IEmployerService {
         DefaultApiResponse<EmployerDTO> response = new DefaultApiResponse<>();
         Employer employer = verifyAndFetchById(EMPLOYER_ID());
 
-        if(Objects.equals(employerPasswordUpdateDTO.getOldPassword(), employerPasswordUpdateDTO.getNewPassword()))
+        // Validate new password against old password
+        if (Objects.equals(employerPasswordUpdateDTO.getOldPassword(), employerPasswordUpdateDTO.getNewPassword())) {
             throw new PasswordUpdateException("New password must be different from the old password");
+        }
 
-        if(!passwordEncoder.matches(employerPasswordUpdateDTO.getOldPassword(), employer.getPassword()))
+        // Check if the old password matches
+        if (!passwordEncoder.matches(employerPasswordUpdateDTO.getOldPassword(), employer.getPassword())) {
             throw new PasswordUpdateException("Old password is incorrect");
+        }
 
-        log.info("Employer password (before update): {}", employer.getPassword());
-
+        log.info("Updating password for employer ID: {}", employer.getEmployerId());
         employerRepository.save(updatePassword(employer, employerPasswordUpdateDTO.getNewPassword()));
 
-        log.info("Employer password (after update): {}", employer.getPassword());
-
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
-        response.setStatusMessage("Employee password updated successfully");
+        response.setStatusMessage("Employer password updated successfully");
         response.setData(
                 EmployerDTO.builder()
                         .employerId(employer.getEmployerId())
@@ -192,53 +187,39 @@ public class EmployerServiceImpl implements IEmployerService {
     }
 
     private Employer updatePassword(Employer employer, String password) {
-        // Encrypt and update the password
         employer.setPassword(passwordEncoder.encode(password));
         return employer;
     }
 
-    private Employer verifyAndFetchById(UUID employerId){
+    private Employer verifyAndFetchById(UUID employerId) {
         return employerRepository.findById(employerId).orElseThrow(
                 () -> new EmployerNotFound("Employer ID does not exist: " + employerId)
         );
     }
 
-    private void verifyRecordPhoneNumberAndEmailAddress(EmployerDTO employerDTO) {
-        // Verify that the phone number or email address or BVN doesn't already exist
-        if(employerRepository.existsByPhoneNumber(employerDTO.getPhoneNumber()))
-            throw new PasswordUpdateException("Employer account already registered with this phone number: " + employerDTO.getPhoneNumber());
-
-        if(employerRepository.existsByEmailAddress(employerDTO.getEmailAddress()))
-            throw new PasswordUpdateException("Employer account already registered with this email address: " + employerDTO.getEmailAddress());
-
-        if(employerRepository.existsByBvn(employerDTO.getBvn()))
-            throw new PasswordUpdateException("Employer account already registered with this BVN: " + employerDTO.getBvn());
-    }
-
     private void updateRecord(Employer destEmployer, EmployerUpdateDTO srcEmployerDTO) {
-        // Update all non-null fields
-        // Note: EmployerUpdateDTO, it is similar to EmployerDTO but attributes can be null
-        if(srcEmployerDTO.getFirstName() != null)
+        if (srcEmployerDTO.getFirstName() != null)
             destEmployer.setFirstName(srcEmployerDTO.getFirstName());
-        if(srcEmployerDTO.getLastName() != null)
+        if (srcEmployerDTO.getLastName() != null)
             destEmployer.setLastName(srcEmployerDTO.getLastName());
-        if(srcEmployerDTO.getJobTitle() != null)
+        if (srcEmployerDTO.getJobTitle() != null)
             destEmployer.setJobTitle(srcEmployerDTO.getJobTitle());
-        if(srcEmployerDTO.getStreetAddress() != null)
+        if (srcEmployerDTO.getStreetAddress() != null)
             destEmployer.setStreetAddress(srcEmployerDTO.getStreetAddress());
 
-        // Ensure the newly updated attributes do not exist already
-        if (srcEmployerDTO.getEmailAddress() !=null && !Objects.equals(
+        if (srcEmployerDTO.getEmailAddress() != null && !Objects.equals(
                 srcEmployerDTO.getEmailAddress(), destEmployer.getEmailAddress())) {
-            if (employerRepository.existsByEmailAddress(srcEmployerDTO.getEmailAddress()))
+            if (employerRepository.existsByEmailAddress(srcEmployerDTO.getEmailAddress())) {
                 throw new RuntimeException("Employer account already registered with this email address: " + srcEmployerDTO.getEmailAddress());
+            }
             destEmployer.setEmailAddress(srcEmployerDTO.getEmailAddress());
         }
 
-        if(srcEmployerDTO.getPhoneNumber() != null && !Objects.equals(
+        if (srcEmployerDTO.getPhoneNumber() != null && !Objects.equals(
                 srcEmployerDTO.getPhoneNumber(), destEmployer.getPhoneNumber())) {
-            if (employerRepository.existsByPhoneNumber(srcEmployerDTO.getPhoneNumber()))
+            if (employerRepository.existsByPhoneNumber(srcEmployerDTO.getPhoneNumber())) {
                 throw new EmployerAlreadyExists("Employer account already registered with this phone number: " + srcEmployerDTO.getPhoneNumber());
+            }
             destEmployer.setPhoneNumber(srcEmployerDTO.getPhoneNumber());
         }
     }
@@ -250,33 +231,18 @@ public class EmployerServiceImpl implements IEmployerService {
         return emailContext;
     }
 
-    /* Method to Verify Token Expiration */
-    private void verifyTokenExpiration(String token) {
-        if (jwtService.isTokenExpired(token)) {
-            log.warn("Token has expired");
-            throw new ExpiredJwtException(null, null, "Access Token has expired");
-        }
-    }
-
-    // Revoke all tokens related to employer since they are no longer on the system
-    private void revokeAllTokens(Employer employer){
-        // Log the process of revoking old tokens
+    private void revokeAllTokens(Employer employer) {
         log.info("Revoking old tokens for employer {}", employer.getEmailAddress());
-
-        // Revoke all old tokens for the customer
         List<AuthToken> validTokens = tokenRepository.findAllByEmployer_EmployerId(employer.getEmployerId());
-        if (validTokens.isEmpty()){
-            log.info("No valid tokens found for employer with email {}.", employer.getEmailAddress());
-            return;
+
+        if (validTokens.isEmpty()) {
+            log.info("No valid tokens found for employer with email {} ", employer.getEmailAddress());
+        } else {
+            validTokens.forEach(token -> {
+                token.setExpired(true);
+                token.setRevoked(true);
+                tokenRepository.save(token);
+            });
         }
-        validTokens.forEach(token -> {
-            token.setRevoked(true);
-            token.setExpired(true);
-        });
-        tokenRepository.saveAll(validTokens);
-
-        // Log successful token revocation
-        log.info("Revoked old tokens for customer {}.", employer.getEmailAddress());
     }
-
 }
