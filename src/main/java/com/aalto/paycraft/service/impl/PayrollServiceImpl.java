@@ -38,41 +38,43 @@ public class PayrollServiceImpl implements IPayrollService {
     private final PayrollJobService payrollJobService;
 
     // Gets the AccessToken from the Request Sent
-    private String ACCESS_TOKEN(){
-        return request.getHeader("Authorization").substring(7);
+    private String ACCESS_TOKEN() {
+        return request.getHeader("Authorization").substring(7); // Removes "Bearer " prefix
     }
 
     // Get the ID of the company making the request
-    private UUID COMPANY_ID(){
+    private UUID COMPANY_ID() {
         verifyTokenExpiration(ACCESS_TOKEN());
-        Claims claims = jwtService.extractClaims(ACCESS_TOKEN(), Function.identity());  // Function.identity() returns the same object
+        Claims claims = jwtService.extractClaims(ACCESS_TOKEN(), Function.identity());
         return UUID.fromString((String) claims.get("activeCompanyID"));
     }
 
+    // ====== CREATE ======
     @Override
     public DefaultApiResponse<PayrollDTO> createPayroll(PayrollDTO payrollDTO) {
         DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
 
-        // Check if payroll is automatic
-        if (payrollDTO.getAutomatic() != null && payrollDTO.getAutomatic()){
-            payrollDTO.setLastRunDate(LocalDate.now()); // Set runDate as now (this would be the last run date)
+        // Check if payroll is automatic and set last run date if true
+        if (payrollDTO.getAutomatic() != null && payrollDTO.getAutomatic()) {
+            payrollDTO.setLastRunDate(LocalDate.now()); // Set last run date as now
             verifyCronExpression(payrollDTO.getCronExpression());
         }
 
-        log.info("companyID from token: {}", COMPANY_ID());
+        log.info("Company ID from token: {}", COMPANY_ID());
 
         Company company = verifyAndFetchCompanyById(COMPANY_ID());
-        payrollDTO.setCompanyDTO(CompanyMapper.toDTO(company));
+        payrollDTO.setCompanyDTO(CompanyMapper.toDTO(company)); // Map company to DTO
 
         Payroll payroll = PayrollMapper.toEntity(payrollDTO);
-        payroll.setCompany(company);
+        payroll.setCompany(company); // Set the company for the payroll
 
-        Payroll savedPayroll = payrollRepository.save(payroll);
+        Payroll savedPayroll = payrollRepository.save(payroll); // Save payroll
 
-        // add payroll to the list of scheduled payrolls if it is an automatic payroll, and the cron expression isn't empty or null
+        // Schedule payroll if it's automatic and has a valid cron expression
         if (savedPayroll.getCronExpression() != null && savedPayroll.getAutomatic() && !savedPayroll.getCronExpression().isEmpty())
             payrollJobService.schedulePayroll(savedPayroll);
 
+        // Set response details
         response.setStatusMessage("Payroll created successfully");
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
         response.setData(
@@ -90,15 +92,104 @@ public class PayrollServiceImpl implements IPayrollService {
         return response;
     }
 
+    // ====== ADD ======
+    @Override
+    public DefaultApiResponse<PayrollDTO> addEmployee(UUID payrollId, UUID employeeId) {
+        DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
+
+        Payroll payroll = verifyAndFetchPayrollById(payrollId);
+        Employee employee = verifyAndFetchEmployeeById(employeeId);
+
+        // Check if employee is already on payroll
+        if (payroll.getEmployees().contains(employee))
+            throw new RuntimeException("Employee with ID " + employee.getEmployeeId() + " already on payroll: " + payroll.getPayrollId());
+
+        payroll.getEmployees().add(employee); // Add employee to payroll
+        payrollRepository.save(payroll); // Save updated payroll
+
+        List<UUID> employees = payroll.getEmployees().stream()
+                .map(Employee::getEmployeeId)
+                .toList(); // Get updated employee list
+
+        response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
+        response.setStatusMessage("Employee added to payroll");
+        response.setData(
+                PayrollDTO.builder()
+                        .payrollId(payroll.getPayrollId())
+                        .employees(employees)
+                        .build()
+        );
+        return response;
+    }
+
+    // ====== REMOVE ======
+    @Override
+    public DefaultApiResponse<PayrollDTO> removeEmployee(UUID payrollId, UUID employeeId) {
+        DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
+
+        Payroll payroll = verifyAndFetchPayrollById(payrollId);
+        Employee employee = verifyAndFetchEmployeeById(employeeId);
+
+        // Check if employee is not on payroll before removal
+        if (!payroll.getEmployees().remove(employee))
+            throw new RuntimeException("Employee not on payroll: " + payroll.getPayrollId());
+
+        payrollRepository.save(payroll); // Save updated payroll
+
+        response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
+        response.setStatusMessage("Employee removed from payroll");
+        response.setData(
+                PayrollDTO.builder()
+                        .payrollId(payroll.getPayrollId())
+                        .employees(payroll.getEmployees().stream()
+                                .map(Employee::getEmployeeId)
+                                .toList())
+                        .build()
+        );
+        return response;
+    }
+
+    // ====== UPDATE ======
+    @Override
+    public DefaultApiResponse<PayrollDTO> updatePayroll(PayrollUpdateDTO payrollUpdateDTO, UUID payrollId) {
+        DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
+        Payroll payroll = verifyAndFetchPayrollById(payrollId);
+
+        // Verify cron expression if payroll is automatic
+        if (payrollUpdateDTO.getAutomatic() != null && payrollUpdateDTO.getAutomatic()) {
+            verifyCronExpression(payrollUpdateDTO.getCronExpression());
+        }
+
+        Payroll savedPayroll = payrollRepository.save(updatePayrollRecord(payroll, payrollUpdateDTO));
+
+        // Update the scheduled payrolls if it is automatic
+        if (savedPayroll.getCronExpression() != null && savedPayroll.getAutomatic() && !savedPayroll.getCronExpression().isEmpty())
+            payrollJobService.schedulePayroll(savedPayroll);
+        else
+            payrollJobService.cancelScheduledPayroll(savedPayroll.getPayrollId()); // Remove payroll if no longer automatic
+
+        response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
+        response.setStatusMessage("Payroll updated successfully");
+        response.setData(
+                PayrollDTO.builder()
+                        .payrollId(payroll.getPayrollId())
+                        .automatic(payrollUpdateDTO.getAutomatic())
+                        .cronExpression(payrollUpdateDTO.getCronExpression())
+                        .build()
+        );
+        return response;
+    }
+
+    // ====== DELETE ======
     @Override
     public DefaultApiResponse<PayrollDTO> deletePayroll(UUID payrollId) {
         DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
         Company company = verifyAndFetchCompanyById(COMPANY_ID());
         Payroll payroll = verifyAndFetchPayrollById(payrollId);
 
-        payrollRepository.delete(payroll);
+        payrollRepository.delete(payroll); // Delete the payroll
 
-        // remove payroll to the list of scheduled payrolls if it is an automatic payroll, and the cron expression isn't empty or null
+        // Remove payroll from scheduled jobs if it's automatic
         if (payroll.getCronExpression() != null && payroll.getAutomatic() && !payroll.getCronExpression().isEmpty())
             payrollJobService.cancelScheduledPayroll(payroll.getPayrollId());
 
@@ -118,60 +209,7 @@ public class PayrollServiceImpl implements IPayrollService {
         return response;
     }
 
-    @Override
-    public DefaultApiResponse<PayrollDTO> addEmployee(UUID payrollId, UUID employeeId) {
-        DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
-
-        Payroll payroll = verifyAndFetchPayrollById(payrollId);
-        Employee employee = verifyAndFetchEmployeeById(employeeId);
-
-        if (payroll.getEmployees().contains(employee))
-            throw new RuntimeException("Employee with ID " + employee.getEmployeeId() + " already on payroll: " + payroll.getPayrollId()); // Use custom exception
-
-        payroll.getEmployees().add(employee);
-        payrollRepository.save(payroll);
-
-        List<UUID> employees = payroll.getEmployees().stream()
-                .map(Employee::getEmployeeId)
-                .toList();
-
-        response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
-        response.setStatusMessage("Employee added to payroll");
-        response.setData(
-                PayrollDTO.builder()
-                        .payrollId(payroll.getPayrollId())
-                        .employees(employees)
-                        .build()
-        );
-        return response;
-    }
-
-
-    @Override
-    public DefaultApiResponse<PayrollDTO> removeEmployee(UUID payrollId, UUID employeeId) {
-        DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
-
-        Payroll payroll = verifyAndFetchPayrollById(payrollId);
-        Employee employee = verifyAndFetchEmployeeById(employeeId);
-
-        if (!payroll.getEmployees().remove(employee))
-            throw new RuntimeException("Employee not on payroll: " + payroll.getPayrollId()); // Custom exception
-
-        payrollRepository.save(payroll);
-
-        response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
-        response.setStatusMessage("Employee removed from payroll");
-        response.setData(
-                PayrollDTO.builder()
-                        .payrollId(payroll.getPayrollId())
-                        .employees(payroll.getEmployees().stream()
-                                .map(Employee::getEmployeeId)
-                                .toList())
-                        .build()
-        );
-        return response;
-    }
-
+    // ====== GET EMPLOYEES BY PAYROLL ID ======
     @Override
     public DefaultApiResponse<List<EmployeeDto>> getEmployeesByPayrollId(UUID payrollId) {
         DefaultApiResponse<List<EmployeeDto>> response = new DefaultApiResponse<>();
@@ -179,9 +217,9 @@ public class PayrollServiceImpl implements IPayrollService {
 
         List<UUID> employeeList = payroll.getEmployees().stream()
                 .map(Employee::getEmployeeId)
-                .toList();
+                .toList(); // Get employee IDs from payroll
 
-        // Optimize by fetching all employees in one query
+        // Fetch all employees in one query for optimization
         List<Employee> employees = employeeRepository.findAllById(employeeList);
         List<EmployeeDto> responseList = employees.stream()
                 .map(employee -> EmployeeDto.builder()
@@ -202,7 +240,7 @@ public class PayrollServiceImpl implements IPayrollService {
         return response;
     }
 
-
+    // ====== GET PAYROLL ======
     @Override
     public DefaultApiResponse<PayrollDTO> getPayroll(UUID payrollId) {
         DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
@@ -217,61 +255,52 @@ public class PayrollServiceImpl implements IPayrollService {
     }
 
     @Override
-    public DefaultApiResponse<PayrollDTO> updatePayroll(PayrollUpdateDTO payrollUpdateDTO, UUID payrollId) {
-        DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
-        Payroll payroll = verifyAndFetchPayrollById(payrollId);
+    public DefaultApiResponse<List<PayrollDTO>> getAllPayroll() {
+        DefaultApiResponse<List<PayrollDTO>> response = new DefaultApiResponse<>();
 
-        if (payrollUpdateDTO.getAutomatic() != null && payrollUpdateDTO.getAutomatic()){
-            verifyCronExpression(payrollUpdateDTO.getCronExpression());
-        }
-
-        Payroll savedPayroll = payrollRepository.save(updatePayrollRecord(payroll,payrollUpdateDTO));
-
-        // update the scheduled payrolls if it is an automatic payroll, and the cron expression isn't empty or null
-        if (savedPayroll.getCronExpression() != null && savedPayroll.getAutomatic() && !savedPayroll.getCronExpression().isEmpty())
-            payrollJobService.schedulePayroll(savedPayroll);
-        else
-            payrollJobService.cancelScheduledPayroll(savedPayroll.getPayrollId()); // remove payroll if the payroll is no longer automatic
+        List<Payroll> payrollList = payrollRepository.findAllByCompanyId(COMPANY_ID());
+        List<PayrollDTO> payrollDTOList =
+                payrollList.stream().map(PayrollMapper::toDto)
+                        .toList();
 
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
-        response.setStatusMessage("Payroll updated successfully");
-        response.setData(
-                PayrollDTO.builder()
-                        .payrollId(payroll.getPayrollId())
-                        .automatic(payrollUpdateDTO.getAutomatic())
-                        .cronExpression(payrollUpdateDTO.getCronExpression())
-                        .build()
-        );
+        response.setStatusMessage("All Payroll details");
+        response.setData(payrollDTOList);
+
         return response;
     }
 
-    private Company verifyAndFetchCompanyById(UUID companyId){
+    // Fetch company by ID and verify existence
+    private Company verifyAndFetchCompanyById(UUID companyId) {
         return companyRepository.findById(companyId).orElseThrow(
-                ()-> new RuntimeException("Company ID does not exist: " + companyId)
+                () -> new RuntimeException("Company ID does not exist: " + companyId)
         );
     }
 
-    private Payroll verifyAndFetchPayrollById(UUID payrollId){
+    // Fetch payroll by ID and verify existence
+    private Payroll verifyAndFetchPayrollById(UUID payrollId) {
         return payrollRepository.findById(payrollId).orElseThrow(
                 () -> new RuntimeException("Payroll ID does not exist: " + payrollId)
         );
     }
 
-    private Employee verifyAndFetchEmployeeById(UUID employeeId){
+    // Fetch employee by ID and verify existence
+    private Employee verifyAndFetchEmployeeById(UUID employeeId) {
         return employeeRepository.findByEmployeeId(employeeId).orElseThrow(
                 () -> new RuntimeException("Employee ID does not exist: " + employeeId)
         );
     }
 
-    private Payroll updatePayrollRecord(Payroll payroll, PayrollUpdateDTO payrollUpdateDTO){
-        if(payrollUpdateDTO.getAutomatic() != null)
+    // Update the payroll record with new data
+    private Payroll updatePayrollRecord(Payroll payroll, PayrollUpdateDTO payrollUpdateDTO) {
+        if (payrollUpdateDTO.getAutomatic() != null)
             payroll.setAutomatic(payrollUpdateDTO.getAutomatic());
-        if(payrollUpdateDTO.getCronExpression() != null)
+        if (payrollUpdateDTO.getCronExpression() != null)
             payroll.setCronExpression(payrollUpdateDTO.getCronExpression());
         return payroll;
     }
 
-    /* Method to Verify Token Expiration */
+    // Verify token expiration
     private void verifyTokenExpiration(String token) {
         if (jwtService.isTokenExpired(token)) {
             log.warn("Token has expired");
@@ -279,13 +308,12 @@ public class PayrollServiceImpl implements IPayrollService {
         }
     }
 
-    /* Method to verify cron expression */
-    private void verifyCronExpression(String cronExpression){
-        try{
-            CronTrigger cronTrigger = new CronTrigger(cronExpression);
-        } catch (Exception e){
+    // Verify if the provided cron expression is valid
+    private void verifyCronExpression(String cronExpression) {
+        try {
+            CronTrigger cronTrigger = new CronTrigger(cronExpression); // Throws exception if invalid
+        } catch (Exception e) {
             throw new RuntimeException("Invalid Cron Expression " + cronExpression);
         }
     }
 }
-
