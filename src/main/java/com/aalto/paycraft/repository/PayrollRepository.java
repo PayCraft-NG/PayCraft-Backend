@@ -12,4 +12,8 @@ import java.util.UUID;
 public interface PayrollRepository extends JpaRepository<Payroll, UUID> {
     @Query("SELECT p FROM Payroll p WHERE p.automatic IS true")
     List<Payroll> findAddWhereAutomaticIsTrue();
+
+    // Custom JPQL Query to find all Payroll by company ID
+    @Query("SELECT p FROM Payroll p WHERE p.company.companyId = :companyId")
+    List<Payroll> findAllByCompanyId(UUID companyId);
 }

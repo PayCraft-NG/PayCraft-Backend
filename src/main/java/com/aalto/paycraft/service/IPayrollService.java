@@ -16,4 +16,5 @@ public interface IPayrollService {
     DefaultApiResponse<List<EmployeeDto>> getEmployeesByPayrollId(UUID payrollId);
     DefaultApiResponse<PayrollDTO> getPayroll(UUID payrollId);
     DefaultApiResponse<PayrollDTO> updatePayroll(PayrollUpdateDTO payrollUpdateDTO, UUID payroll);
+    DefaultApiResponse<List<PayrollDTO>> getAllPayroll();
 }
