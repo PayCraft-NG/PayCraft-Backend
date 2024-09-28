@@ -100,6 +100,7 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
 
             VirtualAccount savedVirtualAccount = virtualAccountRepository.save(virtualAccount);
 
+            //====== Email Service ======//
             if (enableEmail){
                 log.info("===== Email Enabled =====");
                 emailService.sendEmail(EMPLOYER().getEmailAddress(),
@@ -109,6 +110,7 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
             }
             else
                 log.info("===== Email Disabled =====");
+            //====== Email Service ======//
 
             response.setStatusCode("00");
             response.setStatusMessage("Virtual bank account created successfully");
@@ -178,9 +180,6 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
             response.setStatusCode("00");
             response.setStatusMessage("Virtual bank account created successfully");
             response.setData(transactionDTO);
-
-            //todo: email for get transaction history
-
         }else {
             response.setStatusCode("49");
             response.setStatusMessage(
@@ -200,6 +199,8 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        log.info("response ====> {}", responseBody);
 
         if(responseBody.getMessage().equals("Bank transfer initiated successfully")){
             BankTransferResponseDTO data = responseBody.getData();
@@ -243,18 +244,18 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
         }
         if(webhookData.getEvent().equals("charge.success")){
 
-            //========= Email Service =============/
+            //====== Email Service ======//
             if (enableEmail){
                 log.info("===== Email Enabled (credited) =====");
                 emailService.sendEmail(EMPLOYER().getEmailAddress(),
-                        "Account Created",
-                        createEmailContextAccountCredited(EMPLOYER().getFirstName(), frontendUrl,referenceNumber, webhookData.getAmount()),
-                        "accountCreated");
+                        "Account Credited",
+                        createEmailContextAccountCredited(EMPLOYER().getFirstName(), frontendUrl, referenceNumber, webhookData.getAmount()),
+                        "accountCredited");
             }
             else
                 log.info("===== Email Disabled (credited) =====");
 
-            //========= Email Service =============/
+            //====== Email Service ======//
 
             virtualAccount.setBalance(webhookData.getAmount());
             virtualAccountRepository.save(virtualAccount);
@@ -271,7 +272,7 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
     // These could be better... I don't have the luxury of time to optimize
     private static Context createEmailContextAccountCreated(String firstName, String frontendUrl, String accountNumber){
         Context emailContext = new Context();
-        emailContext.setVariable("name", firstName);
+        emailContext.setVariable("username", firstName);
         emailContext.setVariable("paycraftURL", frontendUrl);
         emailContext.setVariable("accountNumber", accountNumber);
         return emailContext;
@@ -279,7 +280,7 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
 
     private static Context createEmailContextAccountCredited(String firstName, String frontendUrl, String referenceNumber, BigDecimal amount){
         Context emailContext = new Context();
-        emailContext.setVariable("name", firstName);
+        emailContext.setVariable("username", firstName);
         emailContext.setVariable("paycraftURL", frontendUrl);
         emailContext.setVariable("referenceNumber", referenceNumber);
         emailContext.setVariable("amount", amount);

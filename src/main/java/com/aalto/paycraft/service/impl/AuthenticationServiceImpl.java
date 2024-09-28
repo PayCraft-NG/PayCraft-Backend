@@ -87,7 +87,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(requestBody.emailAddress(), requestBody.password()));
 
-            //===== Send Email =====/
+            //====== Email Service ======//
             if (enableEmail){
                 log.info("===== Email Enabled =====");
                 emailService.sendEmail(employer.getEmailAddress(),
@@ -97,7 +97,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             }
             else
                 log.info("===== Email Disabled =====");
-            //=====          =====/
+            //====== Email Service ======//
 
             response.setStatusCode(LOGIN_SUCCESS);
             response.setStatusMessage("Successfully Logged In");
@@ -257,7 +257,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
 
     private static Context createEmailContext(String firstName, String frontendUrl){
         Context emailContext = new Context();
-        emailContext.setVariable("name", firstName);
+        emailContext.setVariable("username", firstName);
         emailContext.setVariable("paycraftURL", frontendUrl);
         return emailContext;
     }
