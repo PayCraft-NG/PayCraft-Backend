@@ -9,5 +9,6 @@ import java.util.UUID;
 
 @Repository
 public interface VirtualAccountRepository extends JpaRepository<VirtualAccount, UUID> {
+    // Find Virtual Account given the EmployerId
     Optional<VirtualAccount> findByEmployer_EmployerId(UUID employerId);
 }

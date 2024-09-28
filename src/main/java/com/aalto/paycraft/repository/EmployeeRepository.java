@@ -13,8 +13,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
     @Query("SELECT e FROM Employee e WHERE e.employeeId = :employeeId AND e.deleted = false")
     Optional<Employee> findByEmployeeId(UUID employeeId);
 
-    @Query("SELECT e FROM Employee e WHERE e.deleted = false")
-    List<Employee> findAllByDeletedFalse();
+    @Query("SELECT e FROM Employee e WHERE e.deleted = false AND e.company.companyId = :companyId")
+    List<Employee> findAllByDeletedFalseAndCompanyId(UUID companyId);
 
     // Check if Employee exists by Email Address, Phone Number, CompanyID and make sure the account has not been deleted
     boolean existsByEmailAddressAndPhoneNumberAndCompany_CompanyIdAndDeletedIsFalse(String emailAddress, String phoneNumber, UUID companyProfileId);
