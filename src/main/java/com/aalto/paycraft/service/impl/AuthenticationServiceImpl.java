@@ -168,7 +168,11 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
                 log.info("Found last active company ID from the previous token: {}", companyId);
             } else {
                 // If no valid company ID in token, use the first company in employer's company list
-                companyId = employer.getCompanies().get(0).getCompanyId();
+                try {
+                    companyId = employer.getCompanies().get(0).getCompanyId();
+                } catch (Exception e) {
+                    throw new RuntimeException("Unable to Retrieve Company for Employer");
+                }
                 log.info("No company ID found in previous token, using first company from employer's company list: {}", companyId);
             }
         } else {
