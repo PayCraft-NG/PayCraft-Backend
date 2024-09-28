@@ -4,7 +4,7 @@ spring:
     port: 465
     username: ${EMAIL_SENDER}
     password: ${EMAIL_PASSWORD}
-    enable: false
+    enable: true
     properties:
       mail:
         transport:

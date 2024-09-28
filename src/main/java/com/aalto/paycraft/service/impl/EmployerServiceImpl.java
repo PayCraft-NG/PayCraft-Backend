@@ -75,6 +75,7 @@ public class EmployerServiceImpl implements IEmployerService {
         // Save the employer profile
         employerRepository.save(employer);
 
+        //====== Email Service ======//
         if (enableEmail){
             log.info("===== Email Enabled =====");
            emailService.sendEmail(employer.getEmailAddress(),
@@ -84,6 +85,7 @@ public class EmployerServiceImpl implements IEmployerService {
         }
         else
             log.info("===== Email Disabled =====");
+        //====== Email Service ======//
 
         response.setStatusCode(PayCraftConstant.ONBOARD_SUCCESS);
         response.setStatusMessage("Employer created successfully");
@@ -246,7 +248,7 @@ public class EmployerServiceImpl implements IEmployerService {
 
     private static Context createEmailContext(String firstName, String frontendUrl){
         Context emailContext = new Context();
-        emailContext.setVariable("name", firstName);
+        emailContext.setVariable("username", firstName);
         emailContext.setVariable("paycraftURL", frontendUrl);
         return emailContext;
     }
