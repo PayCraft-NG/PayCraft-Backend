@@ -3,8 +3,8 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: jdbc:mysql://paycraft-dev-aalto.h.aivencloud.com:14641/${DATABASE_NAME:defaultdb}
-    username: ${DATABASE_USERNAME}
+    url: jdbc:mysql://mysql-1efceed6-bakaredavid007-2598.d.aivencloud.com:11165/${DATABASE_NAME:defaultdb}
+    username: ${DATABASE_USERNAME:avnadmin}
     password: ${DATABASE_DEV_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
