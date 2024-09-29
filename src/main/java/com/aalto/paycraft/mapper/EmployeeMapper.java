@@ -26,6 +26,7 @@ public class EmployeeMapper {
                 .jobTitle(employee.getJobTitle())
                 .department(employee.getDepartment())
                 .bankName(employee.getBankName())
+                .bvn(employee.getBvn())
                 .accountNumber(employee.getAccountNumber())
                 .salaryAmount(employee.getSalaryAmount())
                 .salaryCurrency(employee.getSalaryCurrency())
