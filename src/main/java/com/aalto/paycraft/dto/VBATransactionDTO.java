@@ -20,8 +20,8 @@ public class VBATransactionDTO {
     public static class TransactionDTO {
         private String reference;
         private String status;
-        private String amount;
-        private String fee;
+        private double amount;
+        private double fee;
         private String currency;
         private String description;
         private PayerBankAccountDTO payer_bank_account;

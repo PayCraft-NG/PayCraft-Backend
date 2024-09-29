@@ -97,7 +97,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
         DefaultKoraResponse<VBATransactionDTO> response = new DefaultKoraResponse<>();
         try {
             // Build the base URL with the mandatory account number
-            StringBuilder urlBuilder = new StringBuilder(BASE_URL + "/virtual-bank-account/transactions?account_number=" + accountNumber);
+            StringBuilder urlBuilder = new StringBuilder(BASE_URL + "/virtual-bank-account/payments?account_number=" + accountNumber);
 
             // Add optional parameters if provided
             if (startDate != null && !startDate.isEmpty()) {
@@ -120,7 +120,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
                     .header("Authorization", "Bearer " + SECRET_KEY)
                     .GET().build();
 
-            log.info("Sending request to fetch VBA transactions for employer: {}", employer.getEmailAddress());
+            log.info("Sending request to fetch VBA payments for employer: {}", employer.getEmailAddress());
 
             // Send the request and capture the response
             HttpResponse<String> httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -130,16 +130,16 @@ public class KoraPayServiceImpl implements IKoraPayService {
                 response = jacksonObjectMapper.readValue(httpResponse.body(),
                         new TypeReference<DefaultKoraResponse<VBATransactionDTO>>() {
                         });
-                log.info("VBA Transactions fetched successfully for employer: {}", employer.getEmailAddress());
+                log.info("VBA Payment fetched successfully for employer: {}", employer.getEmailAddress());
             } else {
                 // Handle non-200 response from the API
                 response.setStatus(false);
-                response.setMessage("Error Fetching Transactions: " + httpResponse.body());
-                log.error("Error Fetching Transactions: {}", httpResponse.body());
+                response.setMessage("Error Fetching Payment: " + httpResponse.body());
+                log.error("Error Fetching Payment: {}", httpResponse.body());
             }
         } catch (Exception e) {
             // Handle any exceptions during the process
-            log.error("Error Fetching Transactions for employer {}: {}", employer.getEmailAddress(), e.getMessage());
+            log.error("Error Fetching Payment for employer {}: {}", employer.getEmailAddress(), e.getMessage());
             throw new RuntimeException(e.getMessage());
         }
         // Return the final response object
@@ -225,7 +225,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
     }
 
     /**
-     * Generates Transaction Reference for Customer
+     * Generates Payment Reference for Customer
      */
     private String generateRef() {
         log.info("Generating Reference");
@@ -237,6 +237,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
 
     // ================ PAYOUT RELATED OPTIONS ============
 
+    @Override
     public DefaultKoraResponse<List<BankTypeDTO>> listBanks() throws Exception {
         DefaultKoraResponse<List<BankTypeDTO>> response = new DefaultKoraResponse<>();
 
@@ -270,8 +271,9 @@ public class KoraPayServiceImpl implements IKoraPayService {
         return response;  // Return the final response
     }
 
-    public DefaultKoraResponse<BankTypeDTO> resolveBankAccount(String bankCode, String accountNumber) throws Exception {
-        DefaultKoraResponse<BankTypeDTO> response = new DefaultKoraResponse<>();
+    @Override
+    public DefaultKoraResponse<BankAccountDTO> resolveBankAccount(String bankCode, String accountNumber) throws Exception {
+        DefaultKoraResponse<BankAccountDTO> response = new DefaultKoraResponse<>();
 
         // Prepare request payload (bankCode and accountNumber)
         Map<String, Object> requestBody = new HashMap<>();
@@ -300,7 +302,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
         if (httpResponse.statusCode() == 200) {
             // Deserialize the response body into BankTypeDTO if successful
             response = jacksonObjectMapper.readValue(httpResponse.body(),
-                    new TypeReference<DefaultKoraResponse<BankTypeDTO>>() {});
+                    new TypeReference<DefaultKoraResponse<BankAccountDTO>>() {});
 
             log.info("Bank account resolved: {}", response.getData());
         } else {
@@ -311,6 +313,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
         return response;  // Return the resolved bank account details
     }
 
+    @Override
     public DefaultKoraResponse<PayoutResponseDTO> requestPayout(String bankCode, String accountNumber, BigDecimal amount, Employer employer) throws Exception {
         DefaultKoraResponse<PayoutResponseDTO> response = new DefaultKoraResponse<>();
 
@@ -350,6 +353,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
         return response;  // Return the payout response
     }
 
+    @Override
     public DefaultKoraResponse<BulkPayoutResponseDTO> requestBulkPayout(List<PayoutData> payrollList, Employer employer) throws Exception {
         DefaultKoraResponse<BulkPayoutResponseDTO> response = new DefaultKoraResponse<>();
 
@@ -390,6 +394,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
     }
 
     // Helper method to generate the request body for a single payout
+
     private Map<String, Object> generatePayoutRequestBody(BigDecimal amount, Employer employer, String bankCode, String accountNumber, String currency) {
         // 044, 033, 058 - Allowed Bank Codes for Success
 

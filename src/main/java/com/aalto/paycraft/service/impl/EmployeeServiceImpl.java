@@ -180,6 +180,9 @@ public class EmployeeServiceImpl implements IEmployeeService {
 
         // Soft Delete the employee profile
         employee.setDeleted(true);
+        employee.setEmailAddress(employee.getEmailAddress() + "_deleted_" + UUID.randomUUID());
+        employee.setPhoneNumber(employee.getPhoneNumber() + "_deleted_" + UUID.randomUUID());
+        employee.setBvn(employee.getBvn() + "_deleted_" + UUID.randomUUID());
         employeeRepository.save(employee);
 
         // Set response details
@@ -214,12 +217,16 @@ public class EmployeeServiceImpl implements IEmployeeService {
     // Verify if the record already exists by checking the email and phone number within the same company profile
     private void verifyRecord(EmployeeRequestDto requestBody, UUID companyId) {
         log.info("Verifying record of employee profile: checking for existing account");
-        if (employeeRepository.existsByEmailAddressAndPhoneNumberAndCompany_CompanyIdAndDeletedIsFalse(
-                requestBody.getEmailAddress(),
-                requestBody.getPhoneNumber(),
-                companyId
-        )) {
-            throw new RuntimeException("This employee already exists under this COMPANY");
+        try {
+            if (employeeRepository.existsByEmailAddressAndPhoneNumberAndCompany_CompanyIdAndDeletedIsFalse(
+                    requestBody.getEmailAddress(),
+                    requestBody.getPhoneNumber(),
+                    companyId
+            )) {
+                throw new RuntimeException("This employee already exists under this COMPANY");
+            }
+        } catch (RuntimeException e) {
+            throw new RuntimeException("Two results were returned for this EMPLOYEE: " + e.getMessage());
         }
 
         // Verify that the phone number or email address or BVN doesn't already exist

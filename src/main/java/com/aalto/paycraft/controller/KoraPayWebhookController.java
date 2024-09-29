@@ -1,6 +1,8 @@
 package com.aalto.paycraft.controller;
 
 import com.aalto.paycraft.dto.WebhookResponseDTO;
+import com.aalto.paycraft.dto.WebhookResponseData;
+import com.aalto.paycraft.dto.WebhookResponseDataVba;
 import com.aalto.paycraft.service.KoraPayWebhook;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,13 +29,13 @@ public class KoraPayWebhookController {
     // Dependency on KoraPayWebhook service, which handles the business logic for processing webhooks.
     private final KoraPayWebhook webhookService;
 
-    @Operation(summary = "Handle Webhook Response")
+    @Operation(summary = "Handle Webhook Response for Bank Transfer")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Webhook Verified"),
             @ApiResponse(responseCode = "400", description = "Invalid payload")
     })
     @PostMapping("/webhook")
-    public ResponseEntity<String> handleKoraPayWebHook(@RequestBody WebhookResponseDTO payload, @RequestHeader("X-Korapay-Signature") String signature) {
+    public ResponseEntity<String> handleKoraPayWebHook(@RequestBody WebhookResponseDTO<?> payload, @RequestHeader("X-Korapay-Signature") String signature) {
         // Method receives a webhook payload and signature header for validation.
         try {
             // Logging the incoming payload for debugging purposes.

@@ -3,12 +3,13 @@ package com.aalto.paycraft.service.impl;
 import com.aalto.paycraft.dto.*;
 import com.aalto.paycraft.dto.enums.Currency;
 import com.aalto.paycraft.entity.Employer;
+import com.aalto.paycraft.entity.Payment;
 import com.aalto.paycraft.entity.VirtualAccount;
 import com.aalto.paycraft.entity.WebhookData;
 import com.aalto.paycraft.repository.EmployerRepository;
+import com.aalto.paycraft.repository.PaymentRepository;
 import com.aalto.paycraft.repository.VirtualAccountRepository;
 import com.aalto.paycraft.repository.WebhookDataRepository;
-import com.aalto.paycraft.service.IEmailService;
 import com.aalto.paycraft.service.IKoraPayService;
 import com.aalto.paycraft.service.IVirtualAccountService;
 import com.aalto.paycraft.service.JWTService;
@@ -17,15 +18,17 @@ import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.context.Context;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static com.aalto.paycraft.constants.PayCraftConstant.REQUEST_SUCCESS;
@@ -37,17 +40,11 @@ import static com.aalto.paycraft.constants.PayCraftConstant.STATUS_400;
 public class VirtualAccountServiceImpl implements IVirtualAccountService {
     private final VirtualAccountRepository virtualAccountRepository;
     private final WebhookDataRepository webhookDataRepository;
+    private final PaymentRepository paymentRepository;
     private final IKoraPayService koraPayService;
     private final EmployerRepository employerRepository;
     private final JWTService jwtService;
     private final HttpServletRequest request;
-    private final IEmailService emailService;
-
-    @Value("${spring.mail.enable}")
-    private Boolean enableEmail;
-
-    @Value("${frontend.url}")
-    private String frontendUrl;
 
     // Extract the AccessToken from the incoming request
     private String EMPLOYER_ACCESS_TOKEN() {
@@ -120,18 +117,6 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
                         .employerId(String.valueOf(EMPLOYER().getEmployerId()))
                         .build();
 
-                //====== Email Service ======//
-                if (enableEmail){
-                    log.info("===== Email Enabled =====");
-                    emailService.sendEmail(EMPLOYER().getEmailAddress(),
-                            "Account Created",
-                            createEmailContextAccountCreated(EMPLOYER().getFirstName(), frontendUrl, data.getAccount_number()),
-                            "accountCreated");
-                }
-                else
-                    log.info("===== Email Disabled =====");
-                //====== Email Service ======//
-
                 response.setStatusCode(REQUEST_SUCCESS);
                 response.setStatusMessage("Virtual bank account created successfully");
                 response.setData(virtualAccountDTO);
@@ -144,6 +129,7 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
             log.error("Error creating virtual account: {}", e.getMessage());
             throw new RuntimeException(e);
         }
+
         return response;
     }
 
@@ -201,15 +187,16 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
             if (optionalVirtualAccount.isPresent()) {
                 VirtualAccount virtualAccount = optionalVirtualAccount.get();
 
-                // Fetch transactions from external KoraPay service
+                // Fetch payments from external KoraPay service
                 DefaultKoraResponse<VBATransactionDTO> responseBody = koraPayService.getTransactionOfVBA(
                         virtualAccount.getAccountNumber(), EMPLOYER(), startDate, endDate, page, limit);
 
-                if (responseBody.getMessage().equals("Virtual bank account transactions retrieved successfully")) {
+                if (responseBody.getMessage().equals("Virtual bank account payments retrieved successfully")) {
                     VBATransactionDTO data = responseBody.getData();
                     List<VirtualAccountTransactionDTO.TransactionDTO> transactions = new ArrayList<>();
 
                     // Loop through and map the transaction details
+                    // Only the ones made directly to the Virtual Account Number
                     for (VBATransactionDTO.TransactionDTO transaction : data.getTransactions()) {
                         transactions.add(VirtualAccountTransactionDTO.TransactionDTO.builder()
                                 .payerAccountNumber(transaction.getPayer_bank_account().getAccount_number())
@@ -218,33 +205,93 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
                                 .reference(transaction.getReference())
                                 .description(transaction.getDescription())
                                 .status(transaction.getStatus())
-                                .amount(transaction.getAmount())
-                                .fee(transaction.getFee())
+                                .amount(String.valueOf(transaction.getAmount()))
+                                .fee(String.valueOf(transaction.getFee()))
                                 .currency(transaction.getCurrency())
                                 .build());
                     }
 
-                    // Build response DTO with transactions
+                    // Build response DTO with payments
                     VirtualAccountTransactionDTO transactionDTO = VirtualAccountTransactionDTO.builder()
                             .totalPages(data.getPagination().getTotal_pages())
                             .transactions(transactions)
                             .build();
 
                     response.setStatusCode(REQUEST_SUCCESS);
-                    response.setStatusMessage("Transactions for Bank Account Retrieved Successfully");
+                    response.setStatusMessage("Payment for Bank Account Retrieved Successfully");
                     response.setData(transactionDTO);
                 } else {
-                    log.warn("Failed to retrieve transactions for account: {}", virtualAccount.getAccountNumber());
+                    log.warn("Failed to retrieve payments for account: {}", virtualAccount.getAccountNumber());
                     response.setStatusCode("49");
-                    response.setStatusMessage("Unable to get transactions for virtual account");
+                    response.setStatusMessage("Unable to get payments for virtual account");
                 }
             }
         } catch (Exception e) {
-            log.error("Error retrieving transactions: {}", e.getMessage());
+            log.error("Error retrieving payments: {}", e.getMessage());
             throw new RuntimeException(e);
         }
 
         return response;
+    }
+
+    @Override
+    public DefaultApiResponse<PaymentDataResponseDTO> getAllPayments(int pageSize, int pageNumber) {
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+
+        DefaultApiResponse<PaymentDataResponseDTO> response = new DefaultApiResponse<>();
+        PaymentDataResponseDTO data = new PaymentDataResponseDTO();
+        VirtualAccount virtualAccount = new VirtualAccount();
+
+        try {
+            // Retrieve virtual account linked to employer
+            Optional<VirtualAccount> optionalVirtualAccount =
+                    virtualAccountRepository.findByEmployer_EmployerId(EMPLOYER().getEmployerId());
+
+            if (optionalVirtualAccount.isPresent()) {
+                virtualAccount = optionalVirtualAccount.get();
+
+            }
+
+            // Fetch payments from repository with pagination
+            int totalPageSize = paymentRepository.findAllByAccount_AccountId(virtualAccount.getAccountId()).size();
+
+            Page<Payment> payments = paymentRepository.findAllByAccount_AccountIdOrderByTransactionDateTimeDesc(
+                    virtualAccount.getAccountId(), pageable);
+
+            // Convert Payment entities to PaymentDTO
+            List<PaymentDTO> paymentDTOList = payments.stream()
+                    .map(this::convertToPaymentDTO)
+                    .toList();
+
+            data.setTotalPages(totalPageSize / pageSize);
+            data.setPageSize(totalPageSize);
+            data.setPayments(paymentDTOList);
+
+            // Set the response with payment DTOs and pagination information
+            response.setStatusCode(REQUEST_SUCCESS);
+            response.setStatusMessage("Payments fetched successfully");
+            response.setData(data);
+        } catch (Exception e) {
+            response.setStatusCode(STATUS_400);
+            response.setStatusMessage("Error retrieving payments: " + e.getMessage());
+
+            return response;
+        }
+
+        return response;
+    }
+
+    private PaymentDTO convertToPaymentDTO(Payment payment) {
+        return PaymentDTO.builder()
+                .referenceNumber(payment.getReferenceNumber())
+                .amount(payment.getAmount())
+                .transactionType(payment.getTransactionType())
+                .transactionDateTime(payment.getTransactionDateTime())
+                .currency(payment.getCurrency())
+                .description(payment.getDescription())
+                .payrollName(payment.getPayrollName())
+                .employeeName(payment.getEmployeeName())
+                .build();
     }
 
     @Override
@@ -282,13 +329,17 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
             log.error("Error initiating bank transfer: {}", e.getMessage());
             throw new RuntimeException(e);
         }
+
         return response;
     }
 
-    @Override
-    public DefaultApiResponse<?> verifyBankTransfer(String referenceNumber) {
-        DefaultApiResponse<?> response = new DefaultApiResponse<>();
+    @Override // This would work for both fixedVirtualAccount or BankTransfer
+    public DefaultApiResponse<?> verifyPayment(String referenceNumber) {
+        int retryCount = 0;
+        int maxRetries = 5;
+        long retryInterval = 5000; // 5 seconds
 
+        DefaultApiResponse<?> response = new DefaultApiResponse<>();
 
         try {
             // Retrieve virtual account linked to employer
@@ -300,6 +351,24 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
 
                 // Fetch webhook data to verify transfer status
                 Optional<WebhookData> webhookDataOptional = webhookDataRepository.findByReference(referenceNumber);
+
+                // Retry if the webhook data is not present
+                while (webhookDataOptional.isEmpty() && retryCount < maxRetries) {
+                    try {
+                        System.out.println("Waiting for webhook data...");
+                        TimeUnit.MILLISECONDS.sleep(retryInterval);  // Wait for 2 seconds
+
+                        // Check for the webhook data again
+                        webhookDataOptional = webhookDataRepository.findByReference(referenceNumber);
+
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();  // Restore interrupt status
+                        throw new RuntimeException(e.getMessage());
+                    }
+
+                    retryCount++;
+                }
+
                 if (webhookDataOptional.isPresent()) {
                     WebhookData webhookData = webhookDataOptional.get();
 
@@ -307,21 +376,8 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
                     if (webhookData.getEvent().equals("charge.success")) {
                         virtualAccount.setBalance(webhookData.getAmount());
                         virtualAccountRepository.save(virtualAccount);
-                      
-                    //====== Email Service ======//
-                    if (enableEmail){
-                        log.info("===== Email Enabled (credited) =====");
-                        emailService.sendEmail(EMPLOYER().getEmailAddress(),
-                                "Account Credited",
-                                createEmailContextAccountCredited(EMPLOYER().getFirstName(), frontendUrl, referenceNumber, webhookData.getAmount()),
-                                "accountCredited");
-                    }
-                    else
-                        log.info("===== Email Disabled (credited) =====");
-                    //====== Email Service ======//
-                      
-                    response.setStatusCode("00");
-                    response.setStatusMessage("Bank transfer successful");
+                        response.setStatusCode("00");
+                        response.setStatusMessage("Bank transfer successful");
                     } else {
                         log.warn("Bank transfer failed for reference: {}", referenceNumber);
                         response.setStatusCode("49");
@@ -335,24 +391,5 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
         }
 
         return response;
-    }
-
-
-    // These could be better... I don't have the luxury of time to optimize
-    private static Context createEmailContextAccountCreated(String firstName, String frontendUrl, String accountNumber){
-        Context emailContext = new Context();
-        emailContext.setVariable("username", firstName);
-        emailContext.setVariable("paycraftURL", frontendUrl);
-        emailContext.setVariable("accountNumber", accountNumber);
-        return emailContext;
-    }
-
-    private static Context createEmailContextAccountCredited(String firstName, String frontendUrl, String referenceNumber, BigDecimal amount){
-        Context emailContext = new Context();
-        emailContext.setVariable("username", firstName);
-        emailContext.setVariable("paycraftURL", frontendUrl);
-        emailContext.setVariable("referenceNumber", referenceNumber);
-        emailContext.setVariable("amount", amount);
-        return emailContext;
     }
 }

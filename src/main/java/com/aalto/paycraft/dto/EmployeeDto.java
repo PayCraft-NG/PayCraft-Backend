@@ -104,6 +104,13 @@ public class EmployeeDto {
     private String bankName;
 
     @Schema(
+            description = "BVN for employee",
+            example = "1234567890"
+    )
+    @NotEmpty(message = "BVN Code cannot be null or empty")
+    private String bvn;
+
+    @Schema(
             description = "Account number of the employee",
             example = "1234567890"
     )

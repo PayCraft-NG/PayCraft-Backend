@@ -63,7 +63,7 @@ public class EmployeeController {
             responseCode = "200",
             description = "Employee profiles successfully retrieved"
     )
-    @GetMapping // This will handle GET requests to /employees
+    @GetMapping ("/all")// This will handle GET requests to /employees
     public ResponseEntity<DefaultApiResponse<List<EmployeeDto>>> getEmployees() {
         DefaultApiResponse<List<EmployeeDto>> response = employeeService.getAllEmployees(); // Call the service method
         return ResponseEntity.status(HttpStatus.OK).body(response); // Return the response with OK status
