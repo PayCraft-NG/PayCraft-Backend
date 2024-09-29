@@ -43,11 +43,11 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
     public DefaultApiResponse<AuthorizationResponseDto> login(LoginRequestDto requestBody) {
         DefaultApiResponse<AuthorizationResponseDto> response = new DefaultApiResponse<>();
         log.info("Performing Authentication and Processing Login Request for USER with emailAddress: {}.", requestBody.emailAddress());
+        Employer employer = new Employer();
         try {
             // Validate the login request data
             LoginRequestDto.validate(requestBody);
 
-            Employer employer;
             Optional<Employer> employerOpt = employerRepository.findByEmailAddress(requestBody.emailAddress());
 
             if(employerOpt.isPresent()){
@@ -71,7 +71,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             accessAndRefreshToken result = getGenerateAccessTokenAndRefreshToken(employer);
 
             AuthorizationResponseDto authorisationResponseDto = new AuthorizationResponseDto(
-                    result.accessToken(), result.refreshToken(), getLastUpdatedAt(), "1hr","24hrs");
+                    result.accessToken(), result.refreshToken(), getLastUpdatedAt(), "1hr","24hrs", null);
 
             // Authenticate the user with the provided credentials
             authenticationManager.authenticate(
@@ -82,6 +82,15 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             response.setData(authorisationResponseDto);
             log.info("USER {} successfully logged in.", requestBody.emailAddress());
 
+        } catch (IndexOutOfBoundsException ex){
+            response.setStatusCode(STATUS_400);
+            response.setStatusMessage("Unable to Retrieve Company for Employer");
+            AuthorizationResponseDto authorizationResponseDto = new AuthorizationResponseDto(
+                    null,null,null, null,null,
+                    String.valueOf(employer.getEmployerId()));
+            response.setData(authorizationResponseDto);
+
+            return response;
         } catch (RuntimeException ex){
             log.error("An error occurred while performing Authentication for USER {}: {}", requestBody.emailAddress(), ex.getMessage());
         }
@@ -115,9 +124,6 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
 
                     accessAndRefreshToken result = getGenerateAccessTokenAndRefreshToken(employer);
 
-//                    String newAccessToken = jwtService.createJWT(employer, employer.getCompanies().get(0).getCompanyId());
-//                    String newRefreshToken = jwtService.generateRefreshToken(generateRefreshTokenClaims(employer), employer);
-
                     // Revoke old tokens and save the new tokens
                     revokeOldTokens(employer);
                     saveUserAccountToken(employer, result.accessToken, result.refreshToken);
@@ -125,7 +131,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
                     response.setStatusCode(REFRESH_TOKEN_SUCCESS);
                     response.setStatusMessage("Successfully Refreshed AuthToken");
                     AuthorizationResponseDto responseDto = new AuthorizationResponseDto(
-                            result.accessToken, result.refreshToken, getLastUpdatedAt(), "1hr", "24hrs");
+                            result.accessToken, result.refreshToken, getLastUpdatedAt(), "1hr", "24hrs" ,null);
                     response.setData(responseDto);
                 } else {
                     log.warn("Invalid Token signature for user {}.", userEmail);
@@ -184,7 +190,6 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         String jwtToken = jwtService.createJWT(employer, companyId);
         String refreshToken = jwtService.generateRefreshToken(generateRefreshTokenClaims(employer), employer);
 
-        saveUserAccountToken(employer, jwtToken, refreshToken);
         return new accessAndRefreshToken(jwtToken, refreshToken);
     }
 
