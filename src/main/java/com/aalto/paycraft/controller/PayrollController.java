@@ -131,7 +131,7 @@ public class PayrollController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Success")
     })
-    @GetMapping(value = "/run/{payrollId}")
+    @PostMapping(value = "/run/{payrollId}")
     public ResponseEntity<DefaultApiResponse<PayrollDTO>> runPayroll(
             @Valid @PathVariable("payrollId") UUID payrollId
             ) {
