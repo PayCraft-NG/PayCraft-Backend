@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -14,6 +15,6 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
     // Method to find all payments by virtual account's ID and order by transactionDateTime desc
     Page<Payment> findAllByAccount_AccountIdOrderByTransactionDateTimeDesc(UUID accountId, Pageable pageable);
-
     List<Payment> findAllByAccount_AccountId(UUID accountId);
+    Optional<Payment> findByReferenceNumber(String referenceNumber);
 }
