@@ -97,7 +97,9 @@ public class KoraPayServiceImpl implements IKoraPayService {
         DefaultKoraResponse<VBATransactionDTO> response = new DefaultKoraResponse<>();
         try {
             // Build the base URL with the mandatory account number
-            StringBuilder urlBuilder = new StringBuilder(BASE_URL + "/virtual-bank-account/payments?account_number=" + accountNumber);
+            log.info(accountNumber);
+            StringBuilder urlBuilder = new StringBuilder(BASE_URL + "virtual-bank-account/transactions?account_number=" + accountNumber);
+            log.info(urlBuilder.toString());
 
             // Add optional parameters if provided
             if (startDate != null && !startDate.isEmpty()) {
@@ -131,6 +133,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
                         new TypeReference<DefaultKoraResponse<VBATransactionDTO>>() {
                         });
                 log.info("VBA Payment fetched successfully for employer: {}", employer.getEmailAddress());
+                log.info(response.toString());
             } else {
                 // Handle non-200 response from the API
                 response.setStatus(false);

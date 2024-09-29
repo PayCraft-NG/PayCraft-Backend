@@ -26,21 +26,6 @@ public class VirtualAccountController {
     private final IVirtualAccountService virtualAccountService;
 
     /**
-     * Endpoint to create a virtual account
-     * @return ResponseEntity with the created virtual account details
-     */
-    @Operation(summary = "Create Virtual Account for Employer")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Virtual bank account created successfully"),
-            @ApiResponse(responseCode = "400", description = "Unable to create virtual account")
-    })
-    @PostMapping("/create")
-    public ResponseEntity<DefaultApiResponse<VirtualAccountDTO>> createVirtualAccount() {
-        DefaultApiResponse<VirtualAccountDTO> response = virtualAccountService.createVirtualAccount();
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-
-    /**
      * Endpoint to get the details of a virtual account
      * @return ResponseEntity with the virtual account details
      */

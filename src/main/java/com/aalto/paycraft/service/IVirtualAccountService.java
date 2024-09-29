@@ -1,15 +1,16 @@
 package com.aalto.paycraft.service;
 
 import com.aalto.paycraft.dto.*;
+import com.aalto.paycraft.entity.Employer;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public interface IVirtualAccountService {
-    // Virtual Account Details Related
-    DefaultApiResponse<VirtualAccountDTO> createVirtualAccount();
+
+    UUID createVirtualAccount(Employer employer);
     DefaultApiResponse<VirtualAccountDTO> getVirtualAccount();
     DefaultApiResponse<VirtualAccountTransactionDTO> getTransactionsOfVba(String startDate, String endDate, Integer page, Integer limit);
-
     DefaultApiResponse<PaymentDataResponseDTO> getAllPayments(int pageSize, int pageNumber);
 
     // Make Transfer Related Operations
