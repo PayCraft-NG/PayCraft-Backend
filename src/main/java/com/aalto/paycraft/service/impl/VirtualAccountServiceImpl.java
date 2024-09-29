@@ -299,6 +299,9 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
             // Call external KoraPay service to initiate bank transfer
             DefaultKoraResponse<BankTransferResponseDTO> responseBody = koraPayService.initiateBankTransfer(amount, EMPLOYER());
 
+            log.info(responseBody.getMessage());
+            log.info(responseBody.toString());
+
             if (responseBody.getMessage().equals("Bank transfer initiated successfully")) {
                 BankTransferResponseDTO data = responseBody.getData();
 
