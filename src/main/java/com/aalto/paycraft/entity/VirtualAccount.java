@@ -13,7 +13,7 @@ import java.util.UUID;
 @Builder @Entity
 @Getter @Setter @ToString
 @AllArgsConstructor @NoArgsConstructor
-@Table(name = "VirtualAccount")
+@Table(name = "Virtual_accounts")
 public class VirtualAccount {
 
     @Id @GeneratedValue
@@ -56,6 +56,6 @@ public class VirtualAccount {
     @JoinColumn(name = "employerId", nullable = false)
     private Employer employer;
 
-    @OneToMany(mappedBy = "virtualAccount", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Payment> payments;
 }
