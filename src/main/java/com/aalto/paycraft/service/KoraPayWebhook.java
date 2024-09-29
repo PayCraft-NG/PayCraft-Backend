@@ -114,29 +114,30 @@ public class KoraPayWebhook {
     }
 
     private WebhookData buildWebhookData(WebhookResponseDTO<?> webhookResponseDTO, Object data) {
-        if (data instanceof WebhookResponseData) {
-            WebhookResponseData responseData = (WebhookResponseData) data;
+        // Parse the 'data' object dynamically as a map (assuming it can be serialized from JSON)
+        if (data instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> dataMap = (Map<String, Object>) data;
+
+            // Extracting values directly from the map
+            String reference = (String) dataMap.getOrDefault("reference", null);
+            String currency = (String) dataMap.getOrDefault("currency", null);
+            Double amount = dataMap.get("amount") != null ? Double.valueOf(dataMap.get("amount").toString()) : null;
+            Double fee = dataMap.get("fee") != null ? Double.valueOf(dataMap.get("fee").toString()) : null;
+            String status = (String) dataMap.getOrDefault("status", null);
+
+            // Build and return the WebhookData object using extracted values
             return WebhookData.builder()
                     .event(webhookResponseDTO.getEvent())
-                    .reference(responseData.getReference())
-                    .currency(responseData.getCurrency())
-                    .amount(responseData.getAmount())
-                    .fee(responseData.getFee())
-                    .status(responseData.getStatus())
-                    .build();
-        } else if (data instanceof WebhookResponseDataVba) {
-            WebhookResponseDataVba responseDataVba = (WebhookResponseDataVba) data;
-            return WebhookData.builder()
-                    .event(webhookResponseDTO.getEvent())
-                    .reference(responseDataVba.getReference())
-                    .currency(responseDataVba.getCurrency())
-                    .amount(responseDataVba.getAmount())
-                    .fee(responseDataVba.getFee())
-                    .status(responseDataVba.getStatus())
+                    .reference(reference)
+                    .currency(currency)
+                    .amount(BigDecimal.valueOf(amount))
+                    .fee(BigDecimal.valueOf(fee))
+                    .status(status)
                     .build();
         }
+
+        // If data is not in a format we can process
         throw new IllegalArgumentException("Unsupported payload data type");
     }
-
-
 }

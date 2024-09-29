@@ -18,33 +18,33 @@ public class WebhookResponseDataVba {
     private BigDecimal amount;
     private BigDecimal fee;
     private String status;
-    private VirtualBankAccountDetailsDTO virtualBankAccountDetails;
-    private LocalDateTime transactionDate;
+    private VirtualBankAccountDetailsDTO virtual_bank_account_details;
+    private LocalDateTime transaction_date;
 
     @Data
     @JsonIgnoreProperties
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class VirtualBankAccountDetailsDTO {
-        private PayerBankAccountDTO payerBankAccount;
-        private VirtualBankAccountDTO virtualBankAccount;
+        private PayerBankAccountDTO payer_bank_account;
+        private VirtualBankAccountDTO virtual_bank_account;
     }
 
     @Data
     @JsonIgnoreProperties
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class PayerBankAccountDTO {
-        private String accountName;
-        private String accountNumber;  // Masked account number
-        private String bankName;
+        private String account_name;
+        private String account_number;  // Masked account number
+        private String bank_name;
     }
 
     @Data
     @JsonIgnoreProperties
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class VirtualBankAccountDTO {
-        private String accountName;
-        private String accountNumber;
-        private String accountReference;
-        private String bankName;
+        private String account_name;
+        private String account_number;
+        private String account_reference;
+        private String bank_name;
     }
 }
