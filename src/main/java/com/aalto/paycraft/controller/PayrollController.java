@@ -109,6 +109,7 @@ public class PayrollController {
             @ApiResponse(responseCode = "200", description = "Payroll retrieved"),
             @ApiResponse(responseCode = "404", description = "Payroll not found")
     })
+
     @GetMapping(value = "/{payrollId}")
     public ResponseEntity<DefaultApiResponse<PayrollDTO>> getPayroll(
             @Valid @PathVariable("payrollId") UUID payrollId) {
@@ -121,7 +122,8 @@ public class PayrollController {
             @ApiResponse(responseCode = "200", description = "Payrolls retrieved"),
             @ApiResponse(responseCode = "404", description = "Payrolls not found")
     })
-    @GetMapping(value = "/{payrollId}")
+
+    @GetMapping(value = "/all/{payrollId}")
     public ResponseEntity<DefaultApiResponse<List<PayrollDTO>>> getAllPayroll() {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(iPayrollService.getAllPayroll());

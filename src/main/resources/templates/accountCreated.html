@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment History</title>
+    <title>Account Created</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -26,17 +27,20 @@
 </head>
 
 <body>
-    <div class="container">
-        <h1>Payment History</h1>
-        <p>Hi <span th:text="${username}"></span>,</p>
-        <p>Your payment history for <span th:text="${period}"></span> is now available. Please find the attached document for your records.</p>
-        <p>For any questions or clarifications, feel free to get in touch.</p>
-        <br>
-        <p>Cheers,</p>
-        <p>The PayCraft Team.</p>
-        <p class="footer">
-            <a th:href="@{${paycraftURL}}">Visit PayCraft</a>
-        </p>
-    </div>
+<div class="container">
+    <h1>Account Created</h1>
+    <hr>
+    <p>Hi <span th:text="${username}"></span>,</p>
+    <p>Your virtual account has just been created></span>.</p>
+    <p><strong>Account Number:</strong> <span th:text="${accountNumber}"></span></p>
+    <p>You can view your account in your dashboard.</p>
+    <p>Thanks for using PayCraft!</p>
+    <br>
+    <p>Cheers,</p>
+    <p>The PayCraft Team.</p>
+    <p class="footer">
+        <a th:href="@{${paycraftURL}}">Visit PayCraft</a>
+    </p>
+</div>
 </body>
 </html>

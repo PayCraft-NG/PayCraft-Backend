@@ -5,10 +5,12 @@ import com.aalto.paycraft.entity.Payroll;
 import com.aalto.paycraft.repository.PayrollRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.context.Context;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -24,6 +26,13 @@ public class PayrollJobService implements CommandLineRunner {
     private final TaskScheduler taskScheduler;
     private final PayrollRepository payrollRepository;
     private final Map<UUID, ScheduledFuture<?>> scheduledFutureMap = new HashMap<>();
+    private final IEmailService emailService;
+
+    @Value("${spring.mail.enable}")
+    private Boolean enableEmail;
+
+    @Value("${frontend.url}")
+    private String frontendUrl;
 
     @Override
     public void run(String... args) throws Exception {
@@ -69,8 +78,21 @@ public class PayrollJobService implements CommandLineRunner {
             //todo: Implement the logic to process payroll and update totalSalary etc.
 
             payroll.setPaymentStatus(PaymentStatus.PAID);
-            log.info("Successfully processed {}", payroll.getPayrollId())
-            ;
+
+            //====== Email Service ======//
+            if (enableEmail){
+                log.info("===== Email Enabled (payroll) =====");
+                emailService.sendEmail(payroll.getCompany().getCompanyEmailAddress(),
+                        "Payroll Just Ran",
+                        createEmailContext(payroll.getCompany().getCompanyName(), frontendUrl, payroll.getPayrollId()),
+                        "payrollRun");
+            }
+            else
+                log.info("===== Email Disabled (payroll) =====");
+
+            //====== Email Service ======//
+
+            log.info("Successfully processed {}", payroll.getPayrollId());
         } catch (Exception e){
             payroll.setPaymentStatus(PaymentStatus.FAILED);
             log.info("An error occurred processing payroll {} {} {}", payroll.getPayrollId(), payroll.getCompany().getCompanyId(), payroll.getCompany().getCompanyName());
@@ -78,5 +100,13 @@ public class PayrollJobService implements CommandLineRunner {
             payroll.setPayPeriodEnd(LocalDate.now());
             payrollRepository.save(payroll);
         }
+    }
+
+    private static Context createEmailContext(String firstName, String frontendUrl, UUID payrollID){
+        Context emailContext = new Context();
+        emailContext.setVariable("username", firstName);
+        emailContext.setVariable("paycraftURL", frontendUrl);
+        emailContext.setVariable("payrollID", payrollID);
+        return emailContext;
     }
 }
