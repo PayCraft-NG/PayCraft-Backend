@@ -2,10 +2,7 @@ package com.aalto.paycraft.service.impl;
 
 import com.aalto.paycraft.dto.*;
 import com.aalto.paycraft.dto.enums.Currency;
-import com.aalto.paycraft.entity.Employer;
-import com.aalto.paycraft.entity.Payment;
-import com.aalto.paycraft.entity.VirtualAccount;
-import com.aalto.paycraft.entity.WebhookData;
+import com.aalto.paycraft.entity.*;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.repository.PaymentRepository;
 import com.aalto.paycraft.repository.VirtualAccountRepository;
@@ -76,14 +73,14 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
     }
 
     @Override
-    public DefaultApiResponse<VirtualAccountDTO> createVirtualAccount() {
+    public UUID createVirtualAccount(Employer employer) {
         DefaultApiResponse<VirtualAccountDTO> response = new DefaultApiResponse<>();
-        VirtualAccount virtualAccount;
+        VirtualAccount virtualAccount = new VirtualAccount();
         VirtualAccountDTO virtualAccountDTO;
 
         try {
             // Call external KoraPay service to create a virtual account
-            DefaultKoraResponse<VirtualAccountResponseDTO> responseBody = koraPayService.createVirtualAccount(EMPLOYER());
+            DefaultKoraResponse<VirtualAccountResponseDTO> responseBody = koraPayService.createVirtualAccount(employer);
 
             // Check if the account creation was successful
             if (responseBody.getMessage().equals("Virtual bank account created successfully")) {
@@ -99,7 +96,7 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
                         .accountStatus(data.getAccount_status())
                         .balance(BigDecimal.ZERO)  // Initial balance is zero
                         .currency(Currency.valueOf(data.getCurrency()))
-                        .employer(EMPLOYER())  // Link to employer
+                        .employer(employer)  // Link to employer
                         .build();
 
                 // Save the new virtual account in the repository
@@ -114,14 +111,14 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
                         .accountStatus(savedVirtualAccount.getAccountStatus())
                         .balance(savedVirtualAccount.getBalance())
                         .currency(savedVirtualAccount.getCurrency())
-                        .employerId(String.valueOf(EMPLOYER().getEmployerId()))
+                        .employerId(String.valueOf(employer.getEmployerId()))
                         .build();
 
                 response.setStatusCode(REQUEST_SUCCESS);
                 response.setStatusMessage("Virtual bank account created successfully");
                 response.setData(virtualAccountDTO);
             } else {
-                log.warn("Failed to create virtual account for employer: {}", EMPLOYER().getEmployerId());
+                log.warn("Failed to create virtual account for employer: {}", employer);
                 response.setStatusCode(STATUS_400);
                 response.setStatusMessage("Unable to create virtual account");
             }
@@ -130,7 +127,7 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
             throw new RuntimeException(e);
         }
 
-        return response;
+        return virtualAccount.getAccountId();
     }
 
     @Override
@@ -191,7 +188,7 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
                 DefaultKoraResponse<VBATransactionDTO> responseBody = koraPayService.getTransactionOfVBA(
                         virtualAccount.getAccountNumber(), EMPLOYER(), startDate, endDate, page, limit);
 
-                if (responseBody.getMessage().equals("Virtual bank account payments retrieved successfully")) {
+                if (responseBody.getMessage().equals("Virtual bank account transactions retrieved successfully")) {
                     VBATransactionDTO data = responseBody.getData();
                     List<VirtualAccountTransactionDTO.TransactionDTO> transactions = new ArrayList<>();
 

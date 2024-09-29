@@ -7,6 +7,7 @@ import com.aalto.paycraft.dto.EmployerPasswordUpdateDTO;
 import com.aalto.paycraft.dto.EmployerUpdateDTO;
 import com.aalto.paycraft.entity.AuthToken;
 import com.aalto.paycraft.entity.Employer;
+import com.aalto.paycraft.entity.VirtualAccount;
 import com.aalto.paycraft.exception.EmployerAlreadyExists;
 import com.aalto.paycraft.exception.EmployerNotFound;
 import com.aalto.paycraft.exception.PasswordUpdateException;
@@ -15,6 +16,7 @@ import com.aalto.paycraft.repository.AuthTokenRepository;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.service.IEmailService;
 import com.aalto.paycraft.service.IEmployerService;
+import com.aalto.paycraft.service.IVirtualAccountService;
 import com.aalto.paycraft.service.JWTService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -43,6 +45,7 @@ public class EmployerServiceImpl implements IEmployerService {
     private final IEmailService emailService;
     private final JWTService jwtService;
     private final HttpServletRequest request;
+    private final IVirtualAccountService virtualAccountService;
 
     // Gets the AccessToken from the request header
     private String EMPLOYER_ACCESS_TOKEN() {
@@ -87,6 +90,10 @@ public class EmployerServiceImpl implements IEmployerService {
             log.info("===== Email Disabled =====");
         //====== Email Service ======//
 
+        // ======= Virtual Account Service  ========= //
+        UUID virtualAccountId = virtualAccountService.createVirtualAccount(employer);
+
+
         // Set response details
         response.setStatusCode(PayCraftConstant.ONBOARD_SUCCESS);
         response.setStatusMessage("Employer created successfully");
@@ -96,6 +103,7 @@ public class EmployerServiceImpl implements IEmployerService {
                         .firstName(employer.getFirstName())
                         .lastName(employer.getLastName())
                         .emailAddress(employer.getEmailAddress())
+                        .virtualAccountId(virtualAccountId)
                         .build()
         );
         return response;
@@ -147,6 +155,9 @@ public class EmployerServiceImpl implements IEmployerService {
 
         // Soft delete the employer
         employer.setDeleted(true);
+        employer.setEmailAddress(employer.getEmailAddress() + "_deleted_" + UUID.randomUUID());
+        employer.setPhoneNumber(employer.getPhoneNumber() + "_deleted_" + UUID.randomUUID());
+        employer.setBvn(employer.getBvn() + "_deleted_" + UUID.randomUUID());
         revokeAllTokens(employer); // Revoke tokens
         employerRepository.save(employer);
 
@@ -181,7 +192,7 @@ public class EmployerServiceImpl implements IEmployerService {
         employerRepository.save(updatePassword(employer, employerPasswordUpdateDTO.getNewPassword()));
 
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
-        response.setStatusMessage("Employee password updated successfully");
+        response.setStatusMessage("Employer password updated successfully");
         response.setData(
                 EmployerDTO.builder()
                         .employerId(employer.getEmployerId())
