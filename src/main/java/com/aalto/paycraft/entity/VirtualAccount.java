@@ -7,6 +7,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 
 import java.math.BigDecimal;
 import java.sql.Types;
+import java.util.List;
 import java.util.UUID;
 
 @Builder @Entity
@@ -54,4 +55,7 @@ public class VirtualAccount {
     @OneToOne
     @JoinColumn(name = "employerId", nullable = false)
     private Employer employer;
+
+    @OneToMany(mappedBy = "virtualAccount", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Payment> payments;
 }
