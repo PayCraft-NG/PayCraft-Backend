@@ -198,9 +198,13 @@ public class KoraPayServiceImpl implements IKoraPayService {
             if (httpResponse.statusCode() == 200) {
                 response = jacksonObjectMapper.readValue(httpResponse.body(),
                         new TypeReference<DefaultKoraResponse<BankTransferResponseDTO>>() {});
+
+                log.info(response.toString());
                 log.info("Bank transfer initiated successfully for Employer with email {}", employer.getEmailAddress());
 
             } else {
+                log.info(response.toString());
+
                 response.setStatus(false);
                 response.setMessage("Error Initiating Bank Transfer: ");
             }
