@@ -13,7 +13,7 @@ import java.util.UUID;
 @Builder @Entity
 @Getter @Setter @ToString
 @AllArgsConstructor @NoArgsConstructor
-@Table(name = "VirtualAccount")
+@Table(name = "Virtual_accounts")
 public class VirtualAccount {
 
     @Id @GeneratedValue
