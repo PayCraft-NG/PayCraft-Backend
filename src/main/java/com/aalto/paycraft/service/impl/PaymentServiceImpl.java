@@ -128,21 +128,21 @@ public class PaymentServiceImpl implements IPaymentService {
 
                     if ("Request Completed".equals(payoutResponse.getMessage())) {
 
-                        payment = Payment.builder()
-                                .referenceNumber(payoutResponse.getData().getReference())
-                                .amount(payoutResponse.getData().getAmount())
-                                .transactionType("DEBIT")
-                                .transactionDateTime(payoutResponse.getData().)
-                                .description()
-                                .currency()
-                                .payrollName()
-                                .employeeName()
-                                .account()
-                                .build();
+//                        payment = Payment.builder()
+//                                .referenceNumber(payoutResponse.getData().getReference())
+//                                .amount(payoutResponse.getData().getAmount())
+//                                .transactionType("DEBIT")
+//                                .transactionDateTime(payoutResponse.getData().)
+//                                .description()
+//                                .currency()
+//                                .payrollName()
+//                                .employeeName()
+//                                .account()
+//                                .build();
 
                         apiResponse.setStatusCode(REQUEST_SUCCESS);
                         apiResponse.setStatusMessage("Payout request completed");
-                        apiResponse.setData();
+                        apiResponse.setData(null);
 
                         log.info("Payout successful for employee: {}", employee.getFirstName());
                     } else {
