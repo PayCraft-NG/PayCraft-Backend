@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Credited</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        a {
+            color: #800080;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Account Credited</h1>
+        <hr>
+        <p>Hi <span th:text="${username}"></span>,</p>
+        <p>Your virtual account has just been credited with <span th:text="${amount}"></span>.</p>
+        <p><strong>ReferenceNumber:</strong> <span th:text="${referenceNumber}"></span></p>
+        <p>You can view your updated balance in your account dashboard.</p>
+        <p>Thanks for using PayCraft!</p>
+        <br>
+        <p>Cheers,</p>
+        <p>The PayCraft Team.</p>
+        <p class="footer">
+            <a th:href="@{${paycraftURL}}">Visit PayCraft</a>
+        </p>
+    </div>
+</body>
+</html>
