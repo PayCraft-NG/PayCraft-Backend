@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 
+import static com.aalto.paycraft.constants.PayCraftConstant.STATUS_400;
+
 @Service
 @RequiredArgsConstructor
 public class CompanyServiceImpl implements ICompanyService {
@@ -181,6 +183,18 @@ public class CompanyServiceImpl implements ICompanyService {
 
         // Fetch the active company from token claims
         Company company = verifyAndFetchCompanyById(GET_ID("activeCompanyID"));
+
+
+        verifyTokenExpiration(EMPLOYER_ACCESS_TOKEN());
+        Claims claims = jwtService.extractClaims(EMPLOYER_ACCESS_TOKEN(), Function.identity()); // Get all claims
+        List<String> companyIds = (List<String>) claims.get("companyIds");
+        if(companyIds.size() > 1) {
+            companyRepository.delete(company);
+        }else{
+            response.setStatusCode(STATUS_400);
+            response.setStatusMessage("Cannot delete the only existing company");
+            return response;
+        }
 
         // Delete the company from the repository
         companyRepository.delete(company);

@@ -2,6 +2,7 @@ package com.aalto.paycraft.service.impl;
 
 import com.aalto.paycraft.dto.*;
 import com.aalto.paycraft.entity.*;
+import com.aalto.paycraft.mapper.PaymentMapper;
 import com.aalto.paycraft.repository.*;
 import com.aalto.paycraft.service.IKoraPayService;
 import com.aalto.paycraft.service.IPaymentService;
@@ -80,7 +81,7 @@ public class PaymentServiceImpl implements IPaymentService {
     @Override
     public DefaultApiResponse<PaymentDTO> payEmployee(UUID employeeId) {
         DefaultApiResponse<PaymentDTO> apiResponse = new DefaultApiResponse<>();
-        Payment payment = new Payment();
+        Payment payment;
 
         VirtualAccount virtualAccount = new VirtualAccount();
         try {
@@ -128,43 +129,48 @@ public class PaymentServiceImpl implements IPaymentService {
 
                     if ("Request Completed".equals(payoutResponse.getMessage())) {
 
-//                        payment = Payment.builder()
-//                                .referenceNumber(payoutResponse.getData().getReference())
-//                                .amount(payoutResponse.getData().getAmount())
-//                                .transactionType("DEBIT")
-//                                .transactionDateTime(payoutResponse.getData().)
-//                                .description()
-//                                .currency()
-//                                .payrollName()
-//                                .employeeName()
-//                                .account()
-//                                .build();
+                        payment = Payment.builder()
+                                .referenceNumber(payoutResponse.getData().getReference())
+                                .amount(payoutResponse.getData().getAmount())
+                                .transactionType("DEBIT")
+                                .transactionDateTime(LocalDateTime.now())
+                                .description(payoutResponse.getData().getNarration())
+                                .currency(payoutResponse.getData().getCurrency())
+                                .payrollName(null)
+                                .employeeName(String.format("%s %s", EMPLOYER().getFirstName(), EMPLOYER().getLastName()))
+                                .account(virtualAccount)
+                                .build();
 
                         apiResponse.setStatusCode(REQUEST_SUCCESS);
                         apiResponse.setStatusMessage("Payout request completed");
-                        apiResponse.setData(null);
+                        apiResponse.setData(PaymentMapper.toDTO(payment));
 
                         log.info("Payout successful for employee: {}", employee.getFirstName());
                     } else {
+                        apiResponse.setStatusCode(STATUS_400);
+                        apiResponse.setStatusMessage("Payout request failed");
                         log.error("Payout failed for employee {}: {}", employee.getFirstName(), payoutResponse.getMessage());
                     }
                 } else {
+                    apiResponse.setStatusCode(STATUS_400);
+                    apiResponse.setStatusMessage("Payout request failed: Account Number resolved does not match");
                     log.error("Account Number mismatch for employee: expected {}, got {}",
                             employee.getAccountNumber(),
                             employee.getAccountNumber());
                 }
             } else {
+                apiResponse.setStatusCode(STATUS_400);
+                apiResponse.setStatusMessage("Payout request failed: Account Number could not be resolved");
                 log.error("Failed to resolve bank account for employee {}: {}", employee.getFirstName(), resolveResponse.getMessage());
             }
         } catch (Exception e) {
+            apiResponse.setStatusCode(STATUS_400);
+            apiResponse.setStatusMessage("Payout request failed: " + e.getMessage());
             log.error("Error while processing payout for employee {}: {}", employeeId, e.getMessage());
         }
 
         return apiResponse;
     }
-
-
-
 
 //    @Override
 //    public void payEmployeeBulk(UUID payrollId) {

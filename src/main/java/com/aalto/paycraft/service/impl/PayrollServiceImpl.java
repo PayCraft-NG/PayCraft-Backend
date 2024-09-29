@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -79,6 +80,7 @@ public class PayrollServiceImpl implements IPayrollService {
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
         response.setData(
                 PayrollDTO.builder()
+                        .payrollName(payrollDTO.getPayrollName())
                         .payrollId(payroll.getPayrollId())
                         .lastRunDate(payroll.getLastRunDate())
                         .companyDTO(
@@ -130,10 +132,19 @@ public class PayrollServiceImpl implements IPayrollService {
         Payroll payroll = verifyAndFetchPayrollById(payrollId);
         Employee employee = verifyAndFetchEmployeeById(employeeId);
 
-        // Check if employee is not on payroll before removal
-        if (!payroll.getEmployees().remove(employee))
-            throw new RuntimeException("Employee not on payroll: " + payroll.getPayrollId());
+        // Fetch the employee directly from payroll's employees list
+        Optional<Employee> employeeToRemove = payroll.getEmployees().stream()
+                .filter(emp -> emp.getEmployeeId().equals(employeeId))
+                .findFirst();
 
+        if (employeeToRemove.isEmpty()) {
+            throw new RuntimeException("Employee not on payroll: " + payroll.getPayrollId());
+        }
+
+//        // Check if employee is not on payroll before removal
+//        if (!payroll.getEmployees().remove(employee))
+//            throw new RuntimeException("Employee not on payroll: " + payroll.getPayrollId());
+        payroll.getEmployees().remove(employeeToRemove.get());
         payrollRepository.save(payroll); // Save updated payroll
 
         response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);

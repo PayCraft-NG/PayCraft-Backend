@@ -8,6 +8,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Claims;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,7 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Function;
 
-@Service
+@Service @Slf4j
 @RequiredArgsConstructor
 public class JWTService {
 
@@ -74,6 +75,7 @@ public class JWTService {
         claims.put("email", employer.getEmailAddress());
         claims.put("phoneNumber", employer.getPhoneNumber());
         claims.put("activeCompanyID", activeCompanyId);
+        claims.put("virtualAccountID", employer.getVirtualAccount().getAccountId());
         claims.put("companyIds", companyIds);
 
         return Jwts.builder()
@@ -122,11 +124,15 @@ public class JWTService {
     public boolean isTokenValid(String token, UserDetails userDetails) {
         Employer employer = new Employer();
         UUID userId = UUID.fromString(extractID(token));
+        log.info("Employer Id: {}", userId);
         Optional<Employer> employerOptional = employerRepository.findByEmployerId(userId);
         if(employerOptional.isPresent()){
             employer = employerOptional.get();
         }
         final String username = employer.getEmailAddress();
+        log.info("Username: {}", username);
+        log.info("Employer: {}", userDetails.getUsername());
+
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 

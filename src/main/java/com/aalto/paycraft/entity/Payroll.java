@@ -26,7 +26,7 @@ public class Payroll extends BaseEntity {
     @JdbcTypeCode(Types.VARCHAR)
     private UUID payrollId; // The unique identifier for the payroll
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String payrollName;
 
     @Builder.Default

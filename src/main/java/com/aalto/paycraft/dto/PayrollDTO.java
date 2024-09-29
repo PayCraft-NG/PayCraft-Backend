@@ -29,6 +29,7 @@ public class PayrollDTO {
     @Schema(description = "Unique identifier for the payroll", example = "b9b5f6a2-ef72-43d2-8b4d-4e2ecb0f0278")
     private UUID payrollId;
 
+    @NotNull(message = "Name of PayRoll is required")
     @Schema(description = "Name for the payroll", example = "FrontDesk-J")
     private String payrollName;
 

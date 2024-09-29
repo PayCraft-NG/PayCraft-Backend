@@ -144,11 +144,11 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
                 if(jwtService.isRefreshTokenValid(requestBody.refreshToken(), employer)){
                     log.info("Generating New Token for user {}.", userEmail);
 
-                    accessAndRefreshToken result = getGenerateAccessTokenAndRefreshToken(employer);
-
-                    // Revoke old tokens and save the new tokens
+                    // Revoke old tokens.
                     revokeOldTokens(employer);
-                    saveUserAccountToken(employer, result.accessToken, result.refreshToken);
+
+                    // Generate new ones and save them
+                    accessAndRefreshToken result = getGenerateAccessTokenAndRefreshToken(employer);
 
                     response.setStatusCode(REFRESH_TOKEN_SUCCESS);
                     response.setStatusMessage("Successfully Refreshed AuthToken");
@@ -212,7 +212,10 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         String jwtToken = jwtService.createJWT(employer, companyId);
         String refreshToken = jwtService.generateRefreshToken(generateRefreshTokenClaims(employer), employer);
 
-        return new accessAndRefreshToken(jwtToken, refreshToken);
+        accessAndRefreshToken result = new accessAndRefreshToken(jwtToken, refreshToken);
+        saveUserAccountToken(employer, result.accessToken, result.refreshToken);
+
+        return result;
     }
 
     private @NotNull HashMap<String, Object> generateRefreshTokenClaims(Employer employer){
