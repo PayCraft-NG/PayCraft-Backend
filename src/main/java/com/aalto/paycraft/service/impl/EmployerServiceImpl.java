@@ -15,6 +15,7 @@ import com.aalto.paycraft.repository.AuthTokenRepository;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.service.IEmailService;
 import com.aalto.paycraft.service.IEmployerService;
+import com.aalto.paycraft.service.IKoraPayService;
 import com.aalto.paycraft.service.JWTService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -41,6 +42,7 @@ public class EmployerServiceImpl implements IEmployerService {
     private final PasswordEncoder passwordEncoder;
     private final AuthTokenRepository tokenRepository;
     private final IEmailService emailService;
+    private final IKoraPayService walletService;
     private final JWTService jwtService;
     private final HttpServletRequest request;
 
@@ -249,7 +251,7 @@ public class EmployerServiceImpl implements IEmployerService {
             destEmployer.setPhoneNumber(srcEmployerDTO.getPhoneNumber());
         }
     }
-  
+
     private static Context createEmailContext(String firstName, String frontendUrl){
         Context emailContext = new Context();
         emailContext.setVariable("username", firstName);

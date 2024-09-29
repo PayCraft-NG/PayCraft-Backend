@@ -1,6 +1,8 @@
 package com.aalto.paycraft.service;
 
 import com.aalto.paycraft.dto.WebhookResponseDTO;
+import com.aalto.paycraft.dto.WebhookResponseData;
+import com.aalto.paycraft.dto.WebhookResponseDataVba;
 import com.aalto.paycraft.entity.WebhookData;
 import com.aalto.paycraft.repository.WebhookDataRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -39,7 +41,7 @@ public class KoraPayWebhook {
             hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
         }
 
-        return new String (hexChars);
+        return new String(hexChars);
     }
 
     // Method to verify the signature
@@ -64,31 +66,77 @@ public class KoraPayWebhook {
         }
     }
 
-    public String verifyWebHook(WebhookResponseDTO payload, String signature) throws JsonProcessingException {
-        // Verifying the webhook's authenticity using the WebhookVerifier provided by Kora
+    public String verifyWebHook(WebhookResponseDTO<?> webhookResponseDTO, String signature) throws JsonProcessingException {
+        // Secret key should be managed securely, avoid logging it
         String secretKey = SECRET_KEY;
-        log.info("Secret key: {}", secretKey);
+        log.debug("Verifying webhook with provided signature");
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        String payloadJson = objectMapper.writeValueAsString(payload.getData());
+        if (webhookResponseDTO == null || signature == null) {
+            log.error("Invalid webhook or signature");
+            return "Invalid request";
+        }
 
-        log.info("Received Payload: {}", payloadJson);
+        Object data = webhookResponseDTO.getData();
+        if (data == null) {
+            log.error("Webhook payload data is null");
+            return "Invalid payload";
+        }
+
+        // Handle both WebhookResponseData and WebhookResponseDataVba in a unified way
+        String payloadJson = convertPayloadToJson(data);
+        if (payloadJson == null) {
+            log.error("Error converting payload to JSON");
+            return "Invalid payload";
+        }
+
+        log.info("Received payload: {}", payloadJson);
         boolean isValid = verifySignature(payloadJson, signature, secretKey);
 
         if (isValid) {
             log.info("Webhook verified successfully");
-            WebhookData webhookData = WebhookData.builder()
-                    .event(payload.getEvent())
-                    .reference(payload.getData().getReference())
-                    .currency(payload.getData().getCurrency())
-                    .amount(payload.getData().getAmount())
-                    .fee(payload.getData().getFee())
-                    .status(payload.getData().getStatus())
-                    .build();
+            WebhookData webhookData = buildWebhookData(webhookResponseDTO, data);
             webhookDataRepository.save(webhookData);
             return "Webhook verified";
         } else {
+            log.warn("Invalid signature detected");
             return "Invalid signature";
         }
     }
+
+    private String convertPayloadToJson(Object data) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.writeValueAsString(data);
+        } catch (JsonProcessingException e) {
+            log.error("Error processing JSON for payload: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private WebhookData buildWebhookData(WebhookResponseDTO<?> webhookResponseDTO, Object data) {
+        if (data instanceof WebhookResponseData) {
+            WebhookResponseData responseData = (WebhookResponseData) data;
+            return WebhookData.builder()
+                    .event(webhookResponseDTO.getEvent())
+                    .reference(responseData.getReference())
+                    .currency(responseData.getCurrency())
+                    .amount(responseData.getAmount())
+                    .fee(responseData.getFee())
+                    .status(responseData.getStatus())
+                    .build();
+        } else if (data instanceof WebhookResponseDataVba) {
+            WebhookResponseDataVba responseDataVba = (WebhookResponseDataVba) data;
+            return WebhookData.builder()
+                    .event(webhookResponseDTO.getEvent())
+                    .reference(responseDataVba.getReference())
+                    .currency(responseDataVba.getCurrency())
+                    .amount(responseDataVba.getAmount())
+                    .fee(responseDataVba.getFee())
+                    .status(responseDataVba.getStatus())
+                    .build();
+        }
+        throw new IllegalArgumentException("Unsupported payload data type");
+    }
+
+
 }

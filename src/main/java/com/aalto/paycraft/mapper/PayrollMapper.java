@@ -12,6 +12,7 @@ public class PayrollMapper{
         }
         return Payroll.builder()
                 .automatic(payrollDTO.getAutomatic())
+                .payrollName(payrollDTO.getPayrollName())
                 .payPeriodStart(payrollDTO.getPayPeriodStart())
                 .payPeriodEnd(payrollDTO.getPayPeriodEnd())
                 .lastRunDate(payrollDTO.getLastRunDate())
@@ -25,6 +26,8 @@ public class PayrollMapper{
             return null;
         }
         return PayrollDTO.builder()
+                .payrollId(payroll.getPayrollId())
+                .payrollName(payroll.getPayrollName())
                 .automatic(payroll.getAutomatic())
                 .payPeriodStart(payroll.getPayPeriodStart())
                 .payPeriodEnd(payroll.getPayPeriodEnd())

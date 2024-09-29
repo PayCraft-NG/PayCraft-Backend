@@ -16,7 +16,7 @@ public class VirtualAccountTransactionDTO {
     @Schema(description = "Total number of pages in the transaction list", example = "5")
     private int totalPages;
 
-    @Schema(description = "List of transactions related to the virtual account")
+    @Schema(description = "List of payments related to the virtual account")
     private List<TransactionDTO> transactions;
 
     @Data @Builder

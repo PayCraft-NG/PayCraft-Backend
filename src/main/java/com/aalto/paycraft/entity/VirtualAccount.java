@@ -7,12 +7,13 @@ import org.hibernate.annotations.JdbcTypeCode;
 
 import java.math.BigDecimal;
 import java.sql.Types;
+import java.util.List;
 import java.util.UUID;
 
 @Builder @Entity
 @Getter @Setter @ToString
 @AllArgsConstructor @NoArgsConstructor
-@Table(name = "VirtualAccount")
+@Table(name = "Virtual_accounts")
 public class VirtualAccount {
 
     @Id @GeneratedValue
@@ -54,4 +55,7 @@ public class VirtualAccount {
     @OneToOne
     @JoinColumn(name = "employerId", nullable = false)
     private Employer employer;
+
+    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Payment> payments;
 }

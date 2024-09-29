@@ -1,11 +1,13 @@
 package com.aalto.paycraft.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(
         name = "AuthorizationResponseDTO",
         description = "Schema for the response containing access and refresh tokens"
 )
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record AuthorizationResponseDto(
 
         @Schema(
@@ -36,5 +38,11 @@ public record AuthorizationResponseDto(
                 description = "Validity duration of the refresh token in milliseconds",
                 example = "86400000" // 1 day
         )
-        String refreshTokenValidityTime
+        String refreshTokenValidityTime,
+
+         @Schema(
+                 description = "Validity duration of the refresh token in milliseconds",
+                 example = "86400000" // 1 day
+         )
+        String employerId
 ) {}

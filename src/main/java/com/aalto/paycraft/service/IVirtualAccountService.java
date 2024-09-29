@@ -1,9 +1,6 @@
 package com.aalto.paycraft.service;
 
-import com.aalto.paycraft.dto.BankTransferDetailsDTO;
-import com.aalto.paycraft.dto.DefaultApiResponse;
-import com.aalto.paycraft.dto.VirtualAccountDTO;
-import com.aalto.paycraft.dto.VirtualAccountTransactionDTO;
+import com.aalto.paycraft.dto.*;
 
 import java.math.BigDecimal;
 
@@ -13,7 +10,9 @@ public interface IVirtualAccountService {
     DefaultApiResponse<VirtualAccountDTO> getVirtualAccount();
     DefaultApiResponse<VirtualAccountTransactionDTO> getTransactionsOfVba(String startDate, String endDate, Integer page, Integer limit);
 
+    DefaultApiResponse<PaymentDataResponseDTO> getAllPayments(int pageSize, int pageNumber);
+
     // Make Transfer Related Operations
     DefaultApiResponse<BankTransferDetailsDTO> processBankTransfer(BigDecimal amount);
-    DefaultApiResponse<?> verifyBankTransfer(String referenceNumber);
+    DefaultApiResponse<?> verifyPayment(String referenceNumber); // This would work for both to fixedVirtualAccount or BankTransfer
 }

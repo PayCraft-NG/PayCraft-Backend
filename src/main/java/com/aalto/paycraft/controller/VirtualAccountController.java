@@ -1,9 +1,6 @@
 package com.aalto.paycraft.controller;
 
-import com.aalto.paycraft.dto.BankTransferDetailsDTO;
-import com.aalto.paycraft.dto.DefaultApiResponse;
-import com.aalto.paycraft.dto.VirtualAccountDTO;
-import com.aalto.paycraft.dto.VirtualAccountTransactionDTO;
+import com.aalto.paycraft.dto.*;
 import com.aalto.paycraft.service.IVirtualAccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -59,18 +56,18 @@ public class VirtualAccountController {
     }
 
     /**
-     * Endpoint to fetch transactions of a Virtual Bank Account (VBA)
-     * @param startDate Optional start date for filtering transactions (format: YYYY-MM-DD)
-     * @param endDate Optional end date for filtering transactions (format: YYYY-MM-DD)
+     * Endpoint to fetch payments of a Virtual Bank Account (VBA)
+     * @param startDate Optional start date for filtering payments (format: YYYY-MM-DD)
+     * @param endDate Optional end date for filtering payments (format: YYYY-MM-DD)
      * @param page Optional page number for pagination (default: 1)
-     * @param limit Optional limit on the number of transactions (default: 100)
+     * @param limit Optional limit on the number of payments (default: 100)
      * @return ResponseEntity with the transaction details of the virtual account
      */
-    @Operation(summary = "Get Transaction Directly Related to the Virtual Account from Kora Only and not bank transfer")
-    // I just realised, I'll add for all transactions soon
+    @Operation(summary = "Get Payment Directly Related to the Virtual Account from Kora Only and not bank transfer")
+    // I just realised, I'll add for all payments soon
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Transactions for Bank Account Retrieved Successfully"),
-            @ApiResponse(responseCode = "400", description = "Unable to get Transactions for virtual account")
+            @ApiResponse(responseCode = "200", description = "Payment for Bank Account Retrieved Successfully"),
+            @ApiResponse(responseCode = "400", description = "Unable to get Payment for virtual account")
     })
     @GetMapping("/transactions")
     public ResponseEntity<DefaultApiResponse<VirtualAccountTransactionDTO>> getTransactionsOfVba(
@@ -83,6 +80,33 @@ public class VirtualAccountController {
                 .getTransactionsOfVba(startDate, endDate, page, limit);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
+    /**
+     * Retrieves all payments for a virtual account with pagination support.
+     * Allows fetching payments with a default page size of 10 if no size is provided.
+     *
+     * @param pageSize   The number of payments per page (defaults to 10).
+     * @param pageNumber The page number to retrieve (defaults to 0, i.e., the first page).
+     * @return A response containing payment data in a paginated format.
+     */
+    @Operation(summary = "Retrieve all payments", description = "Fetch all payments for a virtual account with pagination. Default page size is 10.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully fetched payments"),
+            @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
+    })
+    @GetMapping("/payments")
+    public ResponseEntity<DefaultApiResponse<PaymentDataResponseDTO>> getAllPayments(
+            @RequestParam(defaultValue = "10") int pageSize,  // Default pageSize is 10
+            @RequestParam(defaultValue = "0") int pageNumber  // Default pageNumber is 0 (first page)
+    ) {
+
+        // Call the service to fetch the paginated payment data
+        DefaultApiResponse<PaymentDataResponseDTO> response = virtualAccountService.getAllPayments(pageSize, pageNumber);
+
+        // Return the response wrapped in ResponseEntity
+        return ResponseEntity.ok(response);
+    }
+
 
     /**
      * Endpoint for processing a bank transfer.
@@ -116,7 +140,7 @@ public class VirtualAccountController {
     @GetMapping("/verify/{referenceNumber}") // GET request for verifying bank transfer
     public ResponseEntity<DefaultApiResponse<?>> verifyBankTransfer(
             @PathVariable String referenceNumber) {
-        DefaultApiResponse<?> response = virtualAccountService.verifyBankTransfer(referenceNumber);
+        DefaultApiResponse<?> response = virtualAccountService.verifyPayment(referenceNumber);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
