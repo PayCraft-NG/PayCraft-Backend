@@ -24,6 +24,11 @@ logging:
 
 secret-string: ${SECRET_STRING}
 
+kora-secret: ${KORA_SECRET_KEY}
+kora-public: ${KORA_PUBLIC_KEY}
+encryption-key: ${ENCRYPTION_KEY}
+webhook-url: "https://19de-102-67-5-2.ngrok-free.app/webhook"
+
 server:
   port: 6090
   error:
