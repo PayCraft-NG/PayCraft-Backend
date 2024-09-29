@@ -121,7 +121,7 @@ public class PayrollController {
             @ApiResponse(responseCode = "200", description = "Payrolls retrieved"),
             @ApiResponse(responseCode = "404", description = "Payrolls not found")
     })
-    @GetMapping(value = "/{payrollId}")
+    @GetMapping(value = "/all")
     public ResponseEntity<DefaultApiResponse<List<PayrollDTO>>> getAllPayroll() {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(iPayrollService.getAllPayroll());
