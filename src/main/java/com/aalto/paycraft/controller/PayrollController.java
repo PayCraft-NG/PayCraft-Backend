@@ -126,4 +126,16 @@ public class PayrollController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(iPayrollService.getAllPayroll());
     }
+
+    @Operation(summary = "Run payroll")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Success")
+    })
+    @GetMapping(value = "/run/{payrollId}")
+    public ResponseEntity<DefaultApiResponse<PayrollDTO>> runPayroll(
+            @Valid @PathVariable("payrollId") UUID payrollId
+            ) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(iPayrollService.runPayroll(payrollId));
+    }
 }

@@ -266,6 +266,21 @@ public class PayrollServiceImpl implements IPayrollService {
     }
 
     @Override
+    public DefaultApiResponse<PayrollDTO> runPayroll(UUID payrollId) {
+        DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
+        Payroll payroll = verifyAndFetchPayrollById(payrollId);
+        payrollJobService.processPayroll(payroll);
+
+        PayrollDTO payrollDTO = PayrollMapper.toDto(payroll);
+        payrollDTO.setPayrollId(payroll.getPayrollId());
+
+        response.setStatusCode(PayCraftConstant.REQUEST_SUCCESS);
+        response.setStatusMessage("Payroll details");
+        response.setData(payrollDTO);
+        return response;
+    }
+
+    @Override
     public DefaultApiResponse<List<PayrollDTO>> getAllPayroll() {
         DefaultApiResponse<List<PayrollDTO>> response = new DefaultApiResponse<>();
 
