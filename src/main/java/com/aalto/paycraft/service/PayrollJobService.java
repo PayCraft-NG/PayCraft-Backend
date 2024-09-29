@@ -39,43 +39,67 @@ public class PayrollJobService implements CommandLineRunner {
         initializePayrollJobs();
     }
 
-    public void initializePayrollJobs(){
-        // re-collect payrolls in db during build time
+    /**
+     * Initializes and schedules payroll jobs from the database at startup.
+     */
+    public void initializePayrollJobs() {
         List<Payroll> payrollList = payrollRepository.findAddWhereAutomaticIsTrue();
-        payrollList.forEach(
-                this::schedulePayroll
-        );
-        log.info("payroll list size: {}", payrollList.size());
+
+        payrollList.forEach(payroll -> {
+            // Check if the job is already scheduled to avoid duplicates
+            if (!scheduledFutureMap.containsKey(payroll.getPayrollId())) {
+                schedulePayroll(payroll);
+            } else {
+                log.info("Payroll job {} is already scheduled, skipping.", payroll.getPayrollId());
+            }
+        });
+
+        log.info("Initialized {} payroll jobs", payrollList.size());
     }
 
-    public void schedulePayroll(Payroll payroll){
-        // cancel payroll job if it already exists
-        // helps handle update and create new payroll
+    /**
+     * Schedules a payroll job based on its cron expression.
+     * @param payroll The payroll entity to be scheduled.
+     */
+    public void schedulePayroll(Payroll payroll) {
+        // Cancel any existing scheduled job for this payroll
         cancelScheduledPayroll(payroll.getPayrollId());
 
-        if(payroll.getCronExpression() != null && !payroll.getCronExpression().isEmpty()){
-            log.info("===== schedule payroll created =====");
-            CronTrigger cronTrigger = new CronTrigger(payroll.getCronExpression());
-            ScheduledFuture<?> scheduledTask = taskScheduler.schedule(()-> processPayroll(payroll), cronTrigger);
-            scheduledFutureMap.put(payroll.getPayrollId(), scheduledTask);
+        if (payroll.getCronExpression() != null && !payroll.getCronExpression().isEmpty()) {
+            try {
+                log.info("Scheduling payroll job {} with cron expression: {}", payroll.getPayrollId(), payroll.getCronExpression());
+                CronTrigger cronTrigger = new CronTrigger(payroll.getCronExpression());
+                ScheduledFuture<?> scheduledTask = taskScheduler.schedule(() -> processPayroll(payroll), cronTrigger);
+                scheduledFutureMap.put(payroll.getPayrollId(), scheduledTask);
+            } catch (Exception e) {
+                log.error("Invalid cron expression for payroll {}: {}", payroll.getPayrollId(), payroll.getCronExpression(), e);
+            }
         }
     }
 
-    public void cancelScheduledPayroll(UUID payrollId){
+    /**
+     * Cancels a scheduled payroll job.
+     * @param payrollId The ID of the payroll job to cancel.
+     */
+    public void cancelScheduledPayroll(UUID payrollId) {
         ScheduledFuture<?> scheduledTask = scheduledFutureMap.get(payrollId);
-        if (scheduledTask != null){
+        if (scheduledTask != null && !scheduledTask.isCancelled()) {
             scheduledTask.cancel(true);
             scheduledFutureMap.remove(payrollId);
-            log.info("===== schedule payroll cancelled =====");
+            log.info("Cancelled payroll job with ID: {}", payrollId);
         }
     }
 
-    public void processPayroll(Payroll payroll){
-        try{
+    /**
+     * Processes a payroll job and updates its status.
+     * @param payroll The payroll entity to process.
+     */
+    public void processPayroll(Payroll payroll) {
+        try {
             payroll.setPayPeriodStart(LocalDate.now());
             payroll.setLastRunDate(LocalDate.now());
 
-            //todo: Implement the logic to process payroll and update totalSalary etc.
+            // TODO: Implement payroll processing logic here
 
             payroll.setPaymentStatus(PaymentStatus.PAID);
 
@@ -90,23 +114,31 @@ public class PayrollJobService implements CommandLineRunner {
             else
                 log.info("===== Email Disabled (payroll) =====");
 
-            //====== Email Service ======//
-
-            log.info("Successfully processed {}", payroll.getPayrollId());
-        } catch (Exception e){
+            log.info("Successfully processed payroll with ID: {}", payroll.getPayrollId());
+        } catch (Exception e) {
             payroll.setPaymentStatus(PaymentStatus.FAILED);
-            log.info("An error occurred processing payroll {} {} {}", payroll.getPayrollId(), payroll.getCompany().getCompanyId(), payroll.getCompany().getCompanyName());
+            log.error("Error processing payroll {}: {}", payroll.getPayrollId(), e.getMessage());
         } finally {
             payroll.setPayPeriodEnd(LocalDate.now());
             payrollRepository.save(payroll);
+
+            // Clean up: remove completed job from map if no longer needed
+            cancelScheduledPayroll(payroll.getPayrollId());
         }
     }
 
-    private static Context createEmailContext(String firstName, String frontendUrl, UUID payrollID){
+    /**
+     * Creates an email context for payroll notification.
+     * @param companyName The name of the company.
+     * @param frontendUrl The frontend URL for payroll details.
+     * @param payrollId The payroll ID.
+     * @return Thymeleaf email context with variables set.
+     */
+    private static Context createEmailContext(String companyName, String frontendUrl, UUID payrollId) {
         Context emailContext = new Context();
-        emailContext.setVariable("username", firstName);
+        emailContext.setVariable("username", companyName);
         emailContext.setVariable("paycraftURL", frontendUrl);
-        emailContext.setVariable("payrollID", payrollID);
+        emailContext.setVariable("payrollID", payrollId);
         return emailContext;
     }
 }
