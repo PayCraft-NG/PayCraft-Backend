@@ -9,16 +9,19 @@ import com.aalto.paycraft.entity.Employer;
 import com.aalto.paycraft.repository.AuthTokenRepository;
 import com.aalto.paycraft.repository.EmployerRepository;
 import com.aalto.paycraft.service.IAuthenticationService;
+import com.aalto.paycraft.service.IEmailService;
 import com.aalto.paycraft.service.JWTService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -36,6 +39,13 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
     private final JWTService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final IEmailService emailService;
+
+    @Value("${spring.mail.enable}")
+    private Boolean enableEmail;
+
+    @Value("${frontend.url}")
+    private String frontendUrl;
 
     private record accessAndRefreshToken(String accessToken, String refreshToken) {}
 
@@ -76,6 +86,18 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             // Authenticate the user with the provided credentials
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(requestBody.emailAddress(), requestBody.password()));
+
+            //====== Email Service ======//
+            if (enableEmail){
+                log.info("===== Email Enabled =====");
+                emailService.sendEmail(employer.getEmailAddress(),
+                        "Login Notification",
+                        createEmailContext(employer.getFirstName(), frontendUrl),
+                        "login");
+            }
+            else
+                log.info("===== Email Disabled =====");
+            //====== Email Service ======//
 
             response.setStatusCode(LOGIN_SUCCESS);
             response.setStatusMessage("Successfully Logged In");
@@ -240,5 +262,12 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
 
         // Log successful token revocation
         log.info("Revoked old tokens for customer {}.", employer.getEmailAddress());
+    }
+
+    private static Context createEmailContext(String firstName, String frontendUrl){
+        Context emailContext = new Context();
+        emailContext.setVariable("username", firstName);
+        emailContext.setVariable("paycraftURL", frontendUrl);
+        return emailContext;
     }
 }
