@@ -123,6 +123,7 @@ public class EmployeeDto {
             example = "500000.00"
     )
     @NotNull(message = "Salary amount cannot be null")
+    @Min(value = 1000)
     private BigDecimal salaryAmount;
 
     @Schema(

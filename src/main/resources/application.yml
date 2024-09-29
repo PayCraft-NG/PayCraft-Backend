@@ -18,7 +18,7 @@ spring:
   application:
     name: PayCraft
   profiles:
-    active: prod
+    active: qa
 
 payroll:
   job:
