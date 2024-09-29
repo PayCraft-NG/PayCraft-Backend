@@ -1,44 +1,50 @@
 package com.aalto.paycraft.entity;
 
-import com.aalto.paycraft.dto.enums.PaymentMethod;
-import com.aalto.paycraft.dto.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
-import java.sql.Types;
-import java.util.UUID;
-import java.time.LocalDate;
 
-@Builder
-@Entity
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-@ToString
-@Table(name = "Payment")
+import java.math.BigDecimal;
+import java.sql.Types;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Builder @Entity
+@Getter @Setter @ToString
+@AllArgsConstructor @NoArgsConstructor
+@Table(name = "payments")
 public class Payment {
 
-    @Id
-    @GeneratedValue
+    @Id @GeneratedValue
     @JdbcTypeCode(Types.VARCHAR)
     private UUID paymentId;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private PaymentMethod paymentMethod;
+    private String referenceNumber;
 
     @Column(nullable = false)
-    private LocalDate paymentDate;
+    private BigDecimal amount;
 
     @Column(nullable = false)
-    private String transactionId;
+    private String transactionType;  // E.g., "CREDIT" or "DEBIT"
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private PaymentStatus paymentStatus;
+    private LocalDateTime transactionDateTime;
 
-    @ManyToOne
-    @JoinColumn(name = "payrollId", referencedColumnName = "payrollId", nullable = false)
-    private Payroll payroll;
+    // Optional: Other metadata
+    @Column(nullable = true)
+    private String description;
+
+    @Column(nullable = false)
+    private String currency;
+
+    @Column(nullable = true)
+    private String payrollName;
+
+    @Column(nullable = true)
+    private String employeeName;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "accountId", nullable = false)
+    private VirtualAccount account;
 }
