@@ -9,21 +9,18 @@ import com.aalto.paycraft.service.IPaymentService;
 import com.aalto.paycraft.service.JWTService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
-import jakarta.persistence.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.annotations.JdbcTypeCode;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.aalto.paycraft.constants.PayCraftConstant.REQUEST_SUCCESS;
 import static com.aalto.paycraft.constants.PayCraftConstant.STATUS_400;
@@ -62,7 +59,26 @@ public class PaymentServiceImpl implements IPaymentService {
         return new Employer();  // Return empty employer object as fallback
     }
 
-    public String getBankCodeByName(String bankName) throws Exception {
+    @Override
+    public DefaultApiResponse<List<String>> getBankNames() throws Exception {
+        DefaultKoraResponse<List<BankTypeDTO>> bankListResponse = koraPayService.listBanks();
+
+        DefaultApiResponse<List<String>> response = new DefaultApiResponse<>();
+
+        if (bankListResponse.getMessage().equals("Successful")) {
+            // Use Java Streams to extract the bank names from the response
+            response.setStatusCode(REQUEST_SUCCESS);
+            response.setStatusMessage("Bank List Retrieved");
+            response.setData(bankListResponse.getData().stream()
+                    .map(BankTypeDTO::getName)  // Map to bank name
+                    .collect(Collectors.toList()));
+            return response;  // Collect as a List
+        } else {
+            throw new RuntimeException("Failed to fetch banks: " + bankListResponse.getMessage());
+        }
+    }
+
+    private String getBankCodeByName(String bankName) throws Exception {
         DefaultKoraResponse<List<BankTypeDTO>> bankListResponse = koraPayService.listBanks();
 
         if (bankListResponse.getMessage().equals("Successful")) {
@@ -101,6 +117,7 @@ public class PaymentServiceImpl implements IPaymentService {
                 apiResponse.setStatusCode(STATUS_400);
                 apiResponse.setStatusMessage("Insufficient funds to make this payment: Balance is " +  virtualAccount.getBalance());
                 log.info("Insufficient funds to make this payments: {}", virtualAccount.getBalance());
+                return apiResponse;
             }
 
             // Get bank code based on employee's bank name (e.g., "United Bank of Africa")
@@ -114,11 +131,13 @@ public class PaymentServiceImpl implements IPaymentService {
                 throw new RuntimeException(e.getMessage());
             }
 
-            if (resolveResponse.getMessage().equals("Request Completed")) {
+            if (resolveResponse.getMessage().equals("Request completed")) {
                 BankAccountDTO resolvedAccount = resolveResponse.getData();
 
                     // Ensure the resolved account matches the employee's account
-                if (resolvedAccount.getAccount_name().equalsIgnoreCase(employee.getAccountNumber())) {
+                log.info("Resolved: {}",resolvedAccount.getAccount_number());
+                log.info("Employee: {}", employee.getAccountNumber());
+                if (resolvedAccount.getAccount_number().equalsIgnoreCase(employee.getAccountNumber())) {
                     // Request payout to the resolved employee account
                     DefaultKoraResponse<PayoutResponseDTO> payoutResponse = koraPayService.requestPayout(
                             bankCode,
@@ -127,7 +146,7 @@ public class PaymentServiceImpl implements IPaymentService {
                             EMPLOYER()
                     );
 
-                    if ("Request Completed".equals(payoutResponse.getMessage())) {
+                    if ("Transfer initiated successfully.".equals(payoutResponse.getMessage())) {
 
                         payment = Payment.builder()
                                 .referenceNumber(payoutResponse.getData().getReference())
@@ -213,9 +232,10 @@ public class PaymentServiceImpl implements IPaymentService {
         }
     }
 
+    @Override
     public DefaultApiResponse<?> verifyPayment(String referenceNumber) {
         int retryCount = 0;
-        int maxRetries = 5;
+        int maxRetries = 8;
         long retryInterval = 5000; // 5 seconds
 
         DefaultApiResponse<?> response = new DefaultApiResponse<>();
@@ -253,19 +273,22 @@ public class PaymentServiceImpl implements IPaymentService {
 
                     // Check if the transfer event was successful
                     if (webhookData.getEvent().equals("charge.success")) {
-                        virtualAccount.setBalance(webhookData.getAmount());
+                        virtualAccount.setBalance(virtualAccount.getBalance().subtract(webhookData.getAmount()));
                         virtualAccountRepository.save(virtualAccount);
                         response.setStatusCode("00");
-                        response.setStatusMessage("Bank transfer successful");
+                        response.setStatusMessage("Bank Payout successful");
                     } else {
                         log.warn("Bank transfer failed for reference: {}", referenceNumber);
                         response.setStatusCode("49");
-                        response.setStatusMessage("Bank transfer failed");
+                        response.setStatusMessage("Bank Payout failed");
                     }
+                } else {
+                    response.setStatusCode("49");
+                    response.setStatusMessage("Bank Payout failed");
                 }
             }
         } catch (Exception e) {
-            log.error("Error verifying bank transfer: {}", e.getMessage());
+            log.error("Error verifying payout: {}", e.getMessage());
             throw new RuntimeException(e);
         }
 
