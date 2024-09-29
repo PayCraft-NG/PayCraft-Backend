@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class WebhookResponseDTO {
+public class WebhookResponseDTO<T> {
     private String event;
-    private WebhookResponseData data;
+    private T data;
 }
