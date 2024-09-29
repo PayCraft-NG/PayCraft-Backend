@@ -28,12 +28,24 @@ public class PaymentController {
     private final IPaymentService paymentService;
 
     @PostMapping("/pay")
-    public ResponseEntity<DefaultApiResponse<?>> payEmployee(@RequestParam String employeeId){
+    @Operation(summary = "Pay an employee",
+            description = "Processes the payment for a given employee based on their ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payment processed successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid employee ID")
+    })
+    public ResponseEntity<DefaultApiResponse<?>> payEmployee(@RequestParam String employeeId) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(paymentService.payEmployee(UUID.fromString(employeeId)));
     }
 
     @GetMapping("/banks")
+    @Operation(summary = "Get list of banks",
+            description = "Retrieves a list of all available bank names.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of bank names retrieved successfully"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     public ResponseEntity<DefaultApiResponse<List<String>>> getBanks() throws Exception {
         return ResponseEntity.status(HttpStatus.OK).body(
                 paymentService.getBankNames()
