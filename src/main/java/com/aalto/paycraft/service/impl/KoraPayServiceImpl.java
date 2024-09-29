@@ -282,13 +282,15 @@ public class KoraPayServiceImpl implements IKoraPayService {
     public DefaultKoraResponse<BankAccountDTO> resolveBankAccount(String bankCode, String accountNumber) throws Exception {
         DefaultKoraResponse<BankAccountDTO> response = new DefaultKoraResponse<>();
 
+        log.info(accountNumber);
         // Prepare request payload (bankCode and accountNumber)
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("bank", bankCode);
-        requestBody.put("account", accountNumber);
+        requestBody.put("account", "2230843231");
 
         // Convert request body to JSON format
         String requestBodyJson = jacksonObjectMapper.writeValueAsString(requestBody);
+        log.info(requestBodyJson);
 
         // Create HTTP POST request to resolve bank account details
         HttpRequest request = HttpRequest.newBuilder()
@@ -311,10 +313,12 @@ public class KoraPayServiceImpl implements IKoraPayService {
             response = jacksonObjectMapper.readValue(httpResponse.body(),
                     new TypeReference<DefaultKoraResponse<BankAccountDTO>>() {});
 
-            log.info("Bank account resolved: {}", response.getData());
+            log.info("Bank account resolved: {}", response);
         } else {
+            log.info(response.toString());
+
             response.setStatus(false);  // Set error status if request fails
-            response.setMessage("Error Initiating Bank Transfer: ");
+            response.setMessage("Error Resolving Bank Account ");
         }
 
         return response;  // Return the resolved bank account details
@@ -346,15 +350,19 @@ public class KoraPayServiceImpl implements IKoraPayService {
             throw new RuntimeException(e);
         }
 
+        log.info(httpResponse.body());
+
         if (httpResponse.statusCode() == 200) {
             // Deserialize the response into PayoutResponseDTO if successful
             response = jacksonObjectMapper.readValue(httpResponse.body(),
                     new TypeReference<DefaultKoraResponse<PayoutResponseDTO>>() {});
 
-            log.info("Payout Request Successful: {}", response.getData());
+            log.info("Payout Request Successful: {}", response.toString());
         } else {
+            log.info(response.toString());
+
             response.setStatus(false);  // Set failure status in case of error
-            response.setMessage("Error Initiating Bank Transfer: ");
+            response.setMessage("Error making payout request: {}");
         }
 
         return response;  // Return the payout response
@@ -408,6 +416,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
         HashMap<String, Object> requestBody = new HashMap<>();
         requestBody.put("reference", generateRef() + "-" + employer.getLastName().toLowerCase());
 
+
         // Create the 'destination' HashMap
         HashMap<String, Object> destination = new HashMap<>();
         destination.put("type", "bank_account");
@@ -434,6 +443,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
         // Add the 'customer' to 'destination'
         destination.put("customer", customer);
 
+        requestBody.put("destination", destination);
         // Return the complete request body
         return requestBody;
     }
