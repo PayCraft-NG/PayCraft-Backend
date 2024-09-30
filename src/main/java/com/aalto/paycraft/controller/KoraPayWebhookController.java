@@ -57,4 +57,9 @@ public class KoraPayWebhookController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Webhook handling failed");
         }
     }
+
+    @GetMapping("/home")
+    public ResponseEntity<String> getHome() {
+        return ResponseEntity.status(HttpStatus.OK).body("Home Page");
+    }
 }
