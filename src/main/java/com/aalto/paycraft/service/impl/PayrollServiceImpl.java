@@ -27,6 +27,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
+import static com.aalto.paycraft.constants.PayCraftConstant.STATUS_400;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -269,7 +271,14 @@ public class PayrollServiceImpl implements IPayrollService {
     public DefaultApiResponse<PayrollDTO> runPayroll(UUID payrollId) {
         DefaultApiResponse<PayrollDTO> response = new DefaultApiResponse<>();
         Payroll payroll = verifyAndFetchPayrollById(payrollId);
-        payrollJobService.processPayroll(payroll);
+
+        DefaultApiResponse<?> response1 = payrollJobService.processPayroll(payroll);
+
+        if(!response1.getStatusMessage().equals("Bulk Payout request completed")){
+            response.setStatusCode(STATUS_400);
+            response.setStatusMessage(response1.getStatusMessage());
+            return response;
+        }
 
         PayrollDTO payrollDTO = PayrollMapper.toDto(payroll);
         payrollDTO.setPayrollId(payroll.getPayrollId());

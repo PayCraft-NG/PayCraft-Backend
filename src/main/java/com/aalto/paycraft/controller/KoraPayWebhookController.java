@@ -1,8 +1,6 @@
 package com.aalto.paycraft.controller;
 
 import com.aalto.paycraft.dto.WebhookResponseDTO;
-import com.aalto.paycraft.dto.WebhookResponseData;
-import com.aalto.paycraft.dto.WebhookResponseDataVba;
 import com.aalto.paycraft.service.KoraPayWebhook;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,7 +12,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.concurrent.CompletableFuture;
 
 
 @Tag(
@@ -35,26 +36,27 @@ public class KoraPayWebhookController {
             @ApiResponse(responseCode = "400", description = "Invalid payload")
     })
     @PostMapping("/webhook")
-    public ResponseEntity<String> handleKoraPayWebHook(@RequestBody WebhookResponseDTO<?> payload, @RequestHeader("X-Korapay-Signature") String signature) {
+    @Async(value = "taskExecutor")
+    public CompletableFuture<ResponseEntity<String>> handleKoraPayWebHook(@RequestBody WebhookResponseDTO<?> payload, @RequestHeader("X-Korapay-Signature") String signature) {
         // Method receives a webhook payload and signature header for validation.
         try {
             // Logging the incoming payload for debugging purposes.
             log.info("Received KoraPay Webhook String: {}", payload.toString());
 
             // Calls the webhookService to verify the incoming webhook and returns a 200 response if successful.
-            return ResponseEntity.status(200).body(webhookService.verifyWebHook(payload, signature));
+            return CompletableFuture.completedFuture(ResponseEntity.status(200).body(webhookService.verifyWebHook(payload, signature)));
         } catch (JsonProcessingException e) {
             // Handles any JSON processing exceptions (e.g., if the payload cannot be parsed).
             log.error("Error processing KoraPay webhook", e);
 
             // Returns a 400 Bad Request response if the payload is invalid or cannot be processed.
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid payload");
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid payload"));
         } catch (Exception e) {
             // Catches any other unexpected exceptions and logs the error.
             log.error("Unexpected error processing KoraPay webhook", e);
 
             // Returns a 500 Internal Server Error if any other exception occurs during processing.
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Webhook handling failed");
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Webhook handling failed"));
         }
     }
 

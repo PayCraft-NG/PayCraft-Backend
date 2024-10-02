@@ -132,9 +132,7 @@ public class PayrollController {
             @ApiResponse(responseCode = "200", description = "Success")
     })
     @PostMapping(value = "/run/{payrollId}")
-    public ResponseEntity<DefaultApiResponse<PayrollDTO>> runPayroll(
-            @Valid @PathVariable("payrollId") UUID payrollId
-            ) {
+    public ResponseEntity<DefaultApiResponse<?>> runPayroll( @Valid @PathVariable("payrollId") UUID payrollId) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(iPayrollService.runPayroll(payrollId));
     }

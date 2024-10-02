@@ -10,13 +10,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.*;
+
+import static com.aalto.paycraft.constants.PayCraftConstant.REQUEST_SUCCESS;
 
 @Slf4j
 @Service
@@ -26,7 +33,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
     @Value("${kora-secret}")
     private String SECRET_KEY;
 
-    @Value("${webhook-url}")
+    @Value("${webhook-qa-url}")
     private String WEBHOOK_URL;
 
     @Value("${encryption-key}")
@@ -174,6 +181,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
     // ==========  BANK TRANSFER RELATED OPERATION =========
     @Override
     public DefaultKoraResponse<BankTransferResponseDTO> initiateBankTransfer(BigDecimal amount, Employer employer) {
+        log.info(WEBHOOK_URL);
         HttpResponse<String> httpResponse;
         DefaultKoraResponse<BankTransferResponseDTO> response = new DefaultKoraResponse<>();
         try {
@@ -199,11 +207,11 @@ public class KoraPayServiceImpl implements IKoraPayService {
                 response = jacksonObjectMapper.readValue(httpResponse.body(),
                         new TypeReference<DefaultKoraResponse<BankTransferResponseDTO>>() {});
 
-                log.info(response.toString());
+                log.info("Bank transfer SUCCESS {}",httpResponse);
                 log.info("Bank transfer initiated successfully for Employer with email {}", employer.getEmailAddress());
 
             } else {
-                log.info(response.toString());
+                log.info("Bank transfer FAILED {}" ,httpResponse);
 
                 response.setStatus(false);
                 response.setMessage("Error Initiating Bank Transfer: ");
@@ -286,7 +294,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
         // Prepare request payload (bankCode and accountNumber)
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("bank", bankCode);
-        requestBody.put("account", "2230843231");
+        requestBody.put("account", accountNumber);
 
         // Convert request body to JSON format
         String requestBodyJson = jacksonObjectMapper.writeValueAsString(requestBody);
@@ -357,9 +365,9 @@ public class KoraPayServiceImpl implements IKoraPayService {
             response = jacksonObjectMapper.readValue(httpResponse.body(),
                     new TypeReference<DefaultKoraResponse<PayoutResponseDTO>>() {});
 
-            log.info("Payout Request Successful: {}", response.toString());
+            log.info("Payout Request Successful: {}", httpResponse.toString());
         } else {
-            log.info(response.toString());
+            log.info("Payout Request FAILED: {}", httpResponse);
 
             response.setStatus(false);  // Set failure status in case of error
             response.setMessage("Error making payout request: {}");
@@ -399,10 +407,11 @@ public class KoraPayServiceImpl implements IKoraPayService {
             response = jacksonObjectMapper.readValue(httpResponse.body(),
                     new TypeReference<DefaultKoraResponse<BulkPayoutResponseDTO>>() {});
 
-            log.info("Bulk Payout Request Successful: {}", response.getData());
+            log.info("Bulk Payout Request Successful: {}", httpResponse.body());
         } else {
+            log.info("Bulk Payout Request FAILED: {}", httpResponse.body());
             response.setStatus(false);  // Set failure status in case of error
-            response.setMessage("Error Initiating Bank Transfer: ");
+            response.setMessage("Error Initiating Bank Transfer: " + httpResponse.body());
         }
 
         return response;  // Return the bulk payout response
@@ -448,35 +457,239 @@ public class KoraPayServiceImpl implements IKoraPayService {
         return requestBody;
     }
 
-    // Helper method to generate the request body for a bulk payout
     private Map<String, Object> generateBulkPayoutRequestBody(List<PayoutData> payoutDataList, Employer employer) {
         HashMap<String, Object> requestBody = new HashMap<>();
 
         // Set the batch reference and description
         requestBody.put("batch_reference", generateRef());
         requestBody.put("description", "test bulk transfer");
-        requestBody.put("merchant_bears_cost", true);
-        requestBody.put("currency", "NGN");
+        requestBody.put("merchant_bears_cost", true);  // Set as true to bear the cost, false otherwise
+        requestBody.put("currency", "NGN");  // Set the currency, e.g., "NGN"
 
         // Initialize the list of payouts
         List<Map<String, Object>> payouts = new ArrayList<>();
 
         // Loop through the payout data and generate each payout request
         for (PayoutData payoutData : payoutDataList) {
-            Map<String, Object> payoutRequest = generatePayoutRequestBody(
-                    payoutData.getAmount(),
-                    employer,
-                    payoutData.getBankCode(),
-                    payoutData.getAccountNumber(),
-                    null
-            );
-            payouts.add(payoutRequest);  // Add each payout request to the list
+            Map<String, Object> payoutRequest = new HashMap<>();
+
+            // Payout reference
+            payoutRequest.put("reference", generateRef());  // Ensure unique reference for each payout
+
+            // Payout amount
+            payoutRequest.put("amount", payoutData.getAmount());
+
+            // Payout type (bank_account in this case)
+            payoutRequest.put("type", "bank_account");
+
+            // Narration
+            payoutRequest.put("narration", "Bulk payout to " + payoutData.getFullName());
+
+            // Bank account details
+            Map<String, Object> bankAccount = new HashMap<>();
+            bankAccount.put("bank_code", payoutData.getBankCode());
+            bankAccount.put("account_number", payoutData.getAccountNumber());
+            payoutRequest.put("bank_account", bankAccount);
+
+            // Customer details
+            Map<String, Object> customer = new HashMap<>();
+            customer.put("name", payoutData.getFullName());
+            customer.put("email", payoutData.getEmail());
+            payoutRequest.put("customer", customer);
+
+            // Add the payout request to the list
+            payouts.add(payoutRequest);
         }
 
-        // Add the list of payouts to the request body
+        // Add the list of payouts to the request body (note the correct key is "payouts")
         requestBody.put("payouts", payouts);
 
         // Return the complete request body for bulk payout
+        return requestBody;
+    }
+
+    // ========== INITIATE CARD PAYMENT =========
+    private static final char[] HEX_ARRAY = "0123456789abcdef".toCharArray();
+
+    private static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
+    private static byte[] encryptDataWithAes(byte[] plainText, byte[] aesKey, byte[] aesIv) throws Exception {
+        GCMParameterSpec gcmSpec = new GCMParameterSpec(128, aesIv);
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        SecretKeySpec secretKeySpec = new SecretKeySpec(aesKey, "AES");
+        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, gcmSpec);
+        byte[] cipherText = cipher.doFinal(plainText);
+
+        return cipherText;
+    }
+
+    public String encryptPayload(String payload) throws Exception {
+        SecureRandom r = new SecureRandom();
+
+        byte[] ivBytes = new byte[16];
+        r.nextBytes(ivBytes);
+
+        byte[] keyBytes   = ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8);
+        byte[] inputBytes = payload.getBytes(StandardCharsets.UTF_8);
+        byte[] encryptedBytes = encryptDataWithAes(inputBytes, keyBytes, ivBytes);
+
+        byte[] cipherTextBytes = Arrays.copyOfRange(encryptedBytes, 0, payload.length());
+        byte[] authTagBytes = Arrays.copyOfRange(encryptedBytes, payload.length(), encryptedBytes.length);
+
+        String ivHex = bytesToHex(ivBytes);
+        String encryptedHex = bytesToHex(cipherTextBytes);
+        String authTagHex = bytesToHex(authTagBytes);
+
+        return ivHex + ":" + encryptedHex + ":" + authTagHex;
+    }
+
+    @Override
+    public DefaultKoraResponse<PaymentDataDTO> chargeCard(CardFundingRequestDTO payload, Employer employer) throws Exception {
+        DefaultKoraResponse<PaymentDataDTO> response = new DefaultKoraResponse<>();
+        try{
+            Map<String, Object> requestBody = createCardFundingRequestBody(payload, employer);
+
+
+            // Convert request body to JSON
+            String requestBodyJson = jacksonObjectMapper.writeValueAsString(requestBody);
+            String url = BASE_URL + "charges/card";;
+
+            Map<String, String> mainRequest = new HashMap<>();
+            mainRequest.put("charge_data", encryptPayload(requestBodyJson));
+
+            String mainRequestJson = jacksonObjectMapper.writeValueAsString(mainRequest);
+
+            // Build the request
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + SECRET_KEY)
+                    .POST(HttpRequest.BodyPublishers.ofString(mainRequestJson))
+                    .build();
+
+            // Send the request and get the response
+            HttpResponse<String> httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            log.info(httpResponse.body());
+
+            // Parse the response
+            if (httpResponse.statusCode() == 200) {
+                response = jacksonObjectMapper.readValue(httpResponse.body(),
+                        new TypeReference<DefaultKoraResponse<PaymentDataDTO>>() {});
+                log.info("Card Funding initiated successfully for Employer with email {}", employer.getEmailAddress());
+
+                if(response.getData().getStatus().equals("processing")){
+                    log.info("Response Received Success: {}", response);
+                    if(response.getData().getAuth_model().equals("OTP")){
+                        authorizeTransactionWithOtp("12345", response.getData().getTransaction_reference());
+                    }
+                }else if(response.getData().getStatus().equals("success")){
+                    boolean isValid = verifyPayment(response.getData().getTransaction_reference());
+                    log.info("Response Received FAILED: {}", response);
+                    if(isValid){
+                        log.info("Success on Funding Card");
+                        response.setStatus(true);
+                        response.setMessage("Account Credited Successfully");
+                    }
+                }
+            } else {
+                response.setStatus(false);
+                response.setMessage("Card Funding Failed: " + response);
+                log.error("Failed to initiate Card Funding: {}", response);
+            }
+        }catch (Exception ex){
+            log.error(ex.getMessage());
+            response.setStatus(false);
+            response.setMessage("Card Funding Failed: " + ex.getMessage());
+        }
+
+        return response;
+    }
+
+    private boolean verifyPayment(String paymentReference) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/charges/" + paymentReference))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + SECRET_KEY).GET().build();
+
+        // Send the request and get the response
+        HttpResponse<String> httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        DefaultKoraResponse<VerifyPaymentDTO> response = jacksonObjectMapper.readValue(httpResponse.body(),
+                new TypeReference<DefaultKoraResponse<VerifyPaymentDTO>>() {});
+        if (httpResponse.statusCode() == 200) {
+            return response.getData().getStatus().equals("success");
+        } else {
+            log.error("Failed to verify payment: {}", response.getData());
+        }
+        return false;
+    }
+
+    private void authorizeTransactionWithOtp(String otp, String transactionReference) throws Exception {
+
+        Map<String, Object> requestBody = new HashMap<>();
+        Map<String, String> authorization = new HashMap<>();
+
+        authorization.put("otp", otp);
+        requestBody.put("transaction_reference", transactionReference);
+        requestBody.put("authorization", authorization);
+
+        String requestBodyJson = jacksonObjectMapper.writeValueAsString(requestBody);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/charges/authorize"))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + SECRET_KEY)
+                .POST(HttpRequest.BodyPublishers.ofString(requestBodyJson))
+                .build();
+
+        // Send the request and get the response
+        HttpResponse<String> httpResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        // Parse the response
+        if (httpResponse.statusCode() == 200) {
+            log.info("Processed Card with OTP");
+        }
+    }
+
+    private Map<String, Object> createCardFundingRequestBody(CardFundingRequestDTO requestDTO, Employer employer){
+        // Create the main request body map
+        Map<String, Object> requestBody = new HashMap<>();
+
+        // Add reference
+        requestBody.put("reference", generateRef());
+
+        // Create card details map
+        Map<String, Object> card = new HashMap<>();
+        card.put("number", requestDTO.getCardNumber());
+        card.put("cvv", requestDTO.getCvv());
+        card.put("expiry_month", requestDTO.getExpiryMonth());
+        card.put("expiry_year", requestDTO.getExpiryYear());
+        card.put("pin", requestDTO.getCardPin()); // optional
+
+        // Add card details to the request body
+        requestBody.put("card", card);
+
+        // Add amount and currency
+        requestBody.put("amount", requestDTO.getAmount());
+        requestBody.put("currency", "NGN");
+
+        // Add redirect URL
+//        requestBody.put("redirect_url", WEBHOOK_URL);
+
+        // Create customer details map
+        Map<String, Object> customerDetails = new HashMap<>();
+        customerDetails.put("name", String.format("%s %s", employer.getFirstName(), employer.getLastName()));
+        customerDetails.put("email", employer.getEmailAddress());
+
+        // Add customer details to the request body
+        requestBody.put("customer", customerDetails);
         return requestBody;
     }
 

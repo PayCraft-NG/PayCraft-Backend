@@ -24,7 +24,7 @@ logging:
 
 secret-string: ${SECRET_STRING:PAYHFUKNSF09839FELIKS9348J39GHIUEWFJR9EF089WUJ4FNR9HG738UJW4WOLLSTONECRAFT}
 kora-secret: ${KORA_SECRET_KEY}
-webhook-url: ${WEBHOOK_URL}
+webhook-dev-url: ${WEBHOOK_URL}
 encryption-key: ${ENCRYPTION_KEY}
 kora-public: ${KORA_PUBLIC_KEY}
 frontend:

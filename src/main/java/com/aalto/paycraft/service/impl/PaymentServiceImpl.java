@@ -14,7 +14,9 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,6 +32,7 @@ import static com.aalto.paycraft.constants.PayCraftConstant.STATUS_400;
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements IPaymentService {
     private final PayrollRepository payrollRepository;
+    private final PaymentRepository paymentRepository;
     private final WebhookDataRepository webhookDataRepository;
     private final VirtualAccountRepository virtualAccountRepository;
     private final EmployeeRepository employeeRepository;
@@ -134,6 +137,7 @@ public class PaymentServiceImpl implements IPaymentService {
             if (resolveResponse.getMessage().equals("Request completed")) {
                 BankAccountDTO resolvedAccount = resolveResponse.getData();
 
+
                     // Ensure the resolved account matches the employee's account
                 log.info("Resolved: {}",resolvedAccount.getAccount_number());
                 log.info("Employee: {}", employee.getAccountNumber());
@@ -156,13 +160,22 @@ public class PaymentServiceImpl implements IPaymentService {
                                 .description(payoutResponse.getData().getNarration())
                                 .currency(payoutResponse.getData().getCurrency())
                                 .payrollName(null)
-                                .employeeName(String.format("%s %s", EMPLOYER().getFirstName(), EMPLOYER().getLastName()))
+                                .employeeName(String.format("%s %s", employee.getFirstName(), employee.getLastName()))
                                 .account(virtualAccount)
                                 .build();
 
                         apiResponse.setStatusCode(REQUEST_SUCCESS);
                         apiResponse.setStatusMessage("Payout request completed");
                         apiResponse.setData(PaymentMapper.toDTO(payment));
+
+                        try {
+                            // Wait for 5 seconds (5000 milliseconds)
+                            Thread.sleep(6000);
+                            // Call the verifyPayment method after the delay
+                            apiResponse = verifyPayment(payment.getReferenceNumber());
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e.getMessage());
+                        }
 
                         log.info("Payout successful for employee: {}", employee.getFirstName());
                     } else {
@@ -175,7 +188,7 @@ public class PaymentServiceImpl implements IPaymentService {
                     apiResponse.setStatusMessage("Payout request failed: Account Number resolved does not match");
                     log.error("Account Number mismatch for employee: expected {}, got {}",
                             employee.getAccountNumber(),
-                            employee.getAccountNumber());
+                            resolvedAccount.getAccount_number());
                 }
             } else {
                 apiResponse.setStatusCode(STATUS_400);
@@ -191,38 +204,112 @@ public class PaymentServiceImpl implements IPaymentService {
         return apiResponse;
     }
 
-//    @Override
-//    public void payEmployeeBulk(UUID payrollId) {
-//        try {
-//            // Fetch payroll by ID
-//            Payroll payroll = payrollRepository.findById(payrollId)
-//                    .orElseThrow(() -> new RuntimeException("Payroll not found"));
-//
-//            List<Employee> employees = payroll.getEmployees();
-//
-//            // Collect payout data for all employees in the payroll
-//            List<PayoutData> payoutDataList = payroll.getEmployees().stream()
-//                    .map(employee -> new PayoutData(
-//                            employee.getSalaryAmount(),
-//                            employee.getBankCode(),
-//                            employee.getAccountNumber()
-//                    ))
-//                    .toList();
-//
-//            // Request bulk payout for all employees
-//            DefaultKoraResponse<BulkPayoutResponseDTO> bulkPayoutResponse = paymentGatewayService.requestBulkPayout(payoutDataList, payroll.getCompany());
-//
-//            if (bulkPayoutResponse.getStatus()) {
-//                log.info("Bulk payout successful for payroll ID: {}", payrollId);
-//            } else {
-//                log.error("Bulk payout failed for payroll ID {}: {}", payrollId, bulkPayoutResponse.getMessage());
-//            }
-//
-//        } catch (Exception e) {
-//            log.error("Error while processing bulk payout for payroll ID {}: {}", payrollId, e.getMessage());
-//            // Handle exceptions (e.g., log them, notify someone, etc.)
-//        }
-//    }
+    @Override
+    public DefaultApiResponse<BulkPayoutResponseDTO> payEmployeesBulk(UUID payrollId) {
+        DefaultApiResponse<BulkPayoutResponseDTO> apiResponse = new DefaultApiResponse<>();
+
+        Payroll payroll = new Payroll();
+        VirtualAccount virtualAccount = new VirtualAccount();
+        List<PayoutData> payoutDataList = new ArrayList<>();
+
+        try {
+            Optional<Payroll> payrollOptional = payrollRepository.findByPayrollId(payrollId);
+            if (payrollOptional.isPresent()) {
+                payroll = payrollOptional.get();
+            }
+
+            List<Employee> employees = payroll.getEmployees();
+
+            // Retrieve virtual account linked to employer
+            Optional<VirtualAccount> optionalVirtualAccount =
+                    virtualAccountRepository.findByEmployer_EmployerId(EMPLOYER().getEmployerId());
+
+            if (optionalVirtualAccount.isPresent()) {
+                virtualAccount = optionalVirtualAccount.get();
+            }
+
+            BigDecimal total = BigDecimal.ZERO;
+            BigDecimal totalPayrollSalary = BigDecimal.ZERO;
+            for(Employee employee : employees) {
+                total = totalPayrollSalary.add(employee.getSalaryAmount());
+            }
+
+            if (virtualAccount.getBalance().compareTo(total) < 0) {
+                apiResponse.setStatusCode(STATUS_400);
+                apiResponse.setStatusMessage("Insufficient funds to run this payroll: Balance is " + virtualAccount.getBalance());
+                log.info("Insufficient Funds to run this Payroll: {}", virtualAccount.getBalance());
+                return apiResponse;
+            }
+
+            try{
+                for(Employee employee : employees) {
+                    PayoutData payoutData = PayoutData.builder()
+                            .fullName(String.format("%s %s", employee.getFirstName(), employee.getLastName()))
+                            .email(employee.getEmailAddress())
+                            .accountNumber(employee.getAccountNumber())
+                            .amount(employee.getSalaryAmount())
+                            .bankCode(getBankCodeByName(employee.getBankName()))
+                            .currency("NGN")
+                            .build();
+
+                    payoutDataList.add(payoutData);
+                }
+
+                DefaultKoraResponse<BulkPayoutResponseDTO> responseBody = koraPayService.requestBulkPayout(payoutDataList, EMPLOYER());
+                log.info(responseBody.getMessage());
+
+                if(responseBody.getMessage().equals("Bulk payout initiated successfully")){
+                    Payment payment = Payment.builder()
+                            .referenceNumber(responseBody.getData().getReference())
+                            .amount(responseBody.getData().getTotalChargeableAmount())
+                            .transactionType("DEBIT")
+                            .transactionDateTime(LocalDateTime.now())
+                            .description(responseBody.getData().getDescription())
+                            .currency(responseBody.getData().getCurrency())
+                            .payrollName(payroll.getPayrollName())
+                            .employeeName(null)
+                            .account(virtualAccount)
+                            .build();
+
+                    try {
+                        // Wait for 5 seconds (5000 milliseconds)
+                        Thread.sleep(6000);
+                        // Call the verifyPayment method after the delay
+                        String message = verifyPayment(payment.getReferenceNumber()).getStatusMessage();
+
+                        if(message.equals("transfer.success")){
+                            apiResponse.setStatusCode(REQUEST_SUCCESS);
+                            apiResponse.setStatusMessage("Bulk Payout Completed");
+                            apiResponse.setData(responseBody.getData());
+
+                            return apiResponse;
+                        } else {
+                            apiResponse.setStatusCode(STATUS_400);
+                            apiResponse.setStatusMessage("Payout request failed");
+                            log.error("Payout failed for payoll with ID: {}", payroll.getPayrollId());
+                        }
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e.getMessage());
+                    }
+
+                }else {
+                    apiResponse.setStatusCode(STATUS_400);
+                    apiResponse.setStatusMessage("Payout request failed : " + responseBody.getMessage());
+                }
+            } catch (Exception e) {
+                apiResponse.setStatusCode(STATUS_400);
+                apiResponse.setStatusMessage("Payout request failed: " + e.getMessage());
+            }
+
+        } catch (RuntimeException ex){
+            apiResponse.setStatusCode(STATUS_400);
+            apiResponse.setStatusMessage("Payout request failed: " + ex.getMessage());
+            log.error("Payout request failed: {}", ex.getMessage());
+        }
+
+        return apiResponse;
+    }
+
 
     // Verify token expiration
     private void verifyTokenExpiration(String token) {
@@ -233,12 +320,12 @@ public class PaymentServiceImpl implements IPaymentService {
     }
 
     @Override
-    public DefaultApiResponse<?> verifyPayment(String referenceNumber) {
+    public DefaultApiResponse<PaymentDTO> verifyPayment(String referenceNumber) {
         int retryCount = 0;
-        int maxRetries = 8;
+        int maxRetries = 10;
         long retryInterval = 5000; // 5 seconds
 
-        DefaultApiResponse<?> response = new DefaultApiResponse<>();
+        DefaultApiResponse<PaymentDTO> response = new DefaultApiResponse<>();
 
         try {
             // Retrieve virtual account linked to employer
@@ -272,11 +359,28 @@ public class PaymentServiceImpl implements IPaymentService {
                     WebhookData webhookData = webhookDataOptional.get();
 
                     // Check if the transfer event was successful
-                    if (webhookData.getEvent().equals("charge.success")) {
+                    if (webhookData.getEvent().equals("transfer.success")) {
                         virtualAccount.setBalance(virtualAccount.getBalance().subtract(webhookData.getAmount()));
                         virtualAccountRepository.save(virtualAccount);
+
+                        Payment payment = Payment.builder()
+                                .referenceNumber(webhookData.getReference())
+                                .amount(webhookData.getAmount())
+                                .transactionType("DEBIT")
+                                .transactionDateTime(LocalDateTime.now())
+                                .description("Employee Payment")
+                                .currency(webhookData.getCurrency())
+                                .payrollName(null)
+                                .employeeName(String.format("%s %s", EMPLOYER().getFirstName(), EMPLOYER().getLastName()))
+                                .account(virtualAccount)
+                                .build();
+
+                        paymentRepository.save(payment);
+
                         response.setStatusCode("00");
                         response.setStatusMessage("Bank Payout successful");
+                        response.setData(PaymentMapper.toDTO(payment));
+
                     } else {
                         log.warn("Bank transfer failed for reference: {}", referenceNumber);
                         response.setStatusCode("49");

@@ -1,7 +1,9 @@
 package com.aalto.paycraft.controller;
 
+import com.aalto.paycraft.dto.BulkPayoutResponseDTO;
 import com.aalto.paycraft.dto.DefaultApiResponse;
 import com.aalto.paycraft.dto.PaymentDTO;
+import com.aalto.paycraft.dto.PaymentDataDTO;
 import com.aalto.paycraft.service.IPaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -37,6 +39,18 @@ public class PaymentController {
     public ResponseEntity<DefaultApiResponse<?>> payEmployee(@RequestParam String employeeId) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(paymentService.payEmployee(UUID.fromString(employeeId)));
+    }
+
+    @PostMapping("/pay/bulk")
+    @Operation(summary = "Pay employees in bulk",
+            description = "Processes the payment for the given employees based on the payRoll ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payment processed successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid payroll ID")
+    })
+    public ResponseEntity<DefaultApiResponse<BulkPayoutResponseDTO>> payBulkEmployees(@RequestParam String payrollId) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(paymentService.payEmployeesBulk(UUID.fromString(payrollId)));
     }
 
     @GetMapping("/banks")

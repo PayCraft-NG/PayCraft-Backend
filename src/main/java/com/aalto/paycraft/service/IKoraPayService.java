@@ -12,7 +12,6 @@ public interface IKoraPayService {
     DefaultKoraResponse<VirtualAccountResponseDTO> createVirtualAccount(Employer employer);
     DefaultKoraResponse<VBATransactionDTO> getTransactionOfVBA(String accountNumber, Employer employer,
                                                                String startDate, String endDate, Integer page, Integer limit);
-
     // Bank Transfer
     DefaultKoraResponse<BankTransferResponseDTO> initiateBankTransfer(BigDecimal amount, Employer employer);
 
@@ -21,4 +20,6 @@ public interface IKoraPayService {
     DefaultKoraResponse<BankAccountDTO> resolveBankAccount(String bankCode, String accountNumber) throws Exception;
     DefaultKoraResponse<PayoutResponseDTO> requestPayout(String bankCode, String accountNumber, BigDecimal amount, Employer employer) throws Exception;
     DefaultKoraResponse<BulkPayoutResponseDTO> requestBulkPayout(List<PayoutData> payrollList, Employer employer) throws Exception;
+
+    DefaultKoraResponse<PaymentDataDTO> chargeCard(CardFundingRequestDTO payload, Employer employer) throws Exception;
 }
