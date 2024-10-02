@@ -33,7 +33,7 @@ public class KoraPayServiceImpl implements IKoraPayService {
     @Value("${kora-secret}")
     private String SECRET_KEY;
 
-    @Value("${webhook-qa-url}")
+    @Value("${webhook-dev-url}")
     private String WEBHOOK_URL;
 
     @Value("${encryption-key}")
