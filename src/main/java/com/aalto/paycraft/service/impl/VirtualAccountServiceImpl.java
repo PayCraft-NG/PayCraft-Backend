@@ -3,10 +3,7 @@ package com.aalto.paycraft.service.impl;
 import com.aalto.paycraft.dto.*;
 import com.aalto.paycraft.dto.enums.Currency;
 import com.aalto.paycraft.entity.*;
-import com.aalto.paycraft.repository.EmployerRepository;
-import com.aalto.paycraft.repository.PaymentRepository;
-import com.aalto.paycraft.repository.VirtualAccountRepository;
-import com.aalto.paycraft.repository.WebhookDataRepository;
+import com.aalto.paycraft.repository.*;
 import com.aalto.paycraft.service.IKoraPayService;
 import com.aalto.paycraft.service.IVirtualAccountService;
 import com.aalto.paycraft.service.JWTService;
@@ -21,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +34,7 @@ import static com.aalto.paycraft.constants.PayCraftConstant.STATUS_400;
 @Slf4j
 public class VirtualAccountServiceImpl implements IVirtualAccountService {
     private final VirtualAccountRepository virtualAccountRepository;
+    private final CardRepository cardRepository;
     private final WebhookDataRepository webhookDataRepository;
     private final PaymentRepository paymentRepository;
     private final IKoraPayService koraPayService;
@@ -333,13 +332,64 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
         return response;
     }
 
+    @Override
+    public DefaultApiResponse<?> processCardFunding(CardFundingRequestDTO requestBody){
+        DefaultApiResponse<?> response = new DefaultApiResponse<>();
+        VirtualAccount virtualAccount = new VirtualAccount();
+        try {
+            // Retrieve virtual account linked to employer
+            Optional<VirtualAccount> optionalVirtualAccount =
+                    virtualAccountRepository.findByEmployer_EmployerId(EMPLOYER().getEmployerId());
+
+            if (optionalVirtualAccount.isPresent()) {
+                virtualAccount = optionalVirtualAccount.get();
+            }
+
+            // Call external KoraPay service to initiate bank transfer
+            DefaultKoraResponse<PaymentDataDTO> responseBody = koraPayService.chargeCard(requestBody, EMPLOYER());
+
+            if (responseBody.getMessage().equals("Card charged successfully")) {
+
+                virtualAccount.setBalance(responseBody
+                        .getData().getAmount().add(virtualAccount.getBalance()));
+                virtualAccountRepository.save(virtualAccount);
+
+                Payment payment = Payment.builder()
+                        .account(virtualAccount)
+                        .amount(responseBody.getData().getAmount())
+                        .currency(responseBody.getData().getCurrency())
+                        .employeeName(null)
+                        .payrollName(null)
+                        .referenceNumber(responseBody.getData().getPayment_reference())
+                        .description("Fund Account via Card")
+                        .transactionType("CREDIT")
+                        .transactionDateTime(LocalDateTime.now())
+                        .build();
+                paymentRepository.save(payment);
+
+                response.setStatusCode(REQUEST_SUCCESS);
+                response.setStatusMessage("Account CREDITED successfully");
+            } else {
+                log.warn("Card Funding failed {}", responseBody.getMessage());
+                response.setStatusCode(STATUS_400);
+                response.setStatusMessage("Failed to fund account via Card: " + responseBody.getMessage());
+            }
+        } catch (Exception e) {
+            log.error("Card Funding failed");
+            throw new RuntimeException(e);
+        }
+        return response;
+    }
+
+
+
     @Override // This would work for both fixedVirtualAccount or BankTransfer
-    public DefaultApiResponse<?> verifyPayment(String referenceNumber) {
+    public DefaultApiResponse<PaymentDTO> verifyPayment(String referenceNumber) {
         int retryCount = 0;
         int maxRetries = 5;
         long retryInterval = 5000; // 5 seconds
 
-        DefaultApiResponse<?> response = new DefaultApiResponse<>();
+        DefaultApiResponse<PaymentDTO> response = new DefaultApiResponse<>();
 
         try {
             // Retrieve virtual account linked to employer
@@ -355,7 +405,7 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
                 // Retry if the webhook data is not present
                 while (webhookDataOptional.isEmpty() && retryCount < maxRetries) {
                     try {
-                        System.out.println("Waiting for webhook data...");
+                        log.info("Waiting for webhook data...");
                         TimeUnit.MILLISECONDS.sleep(retryInterval);  // Wait for 2 seconds
 
                         // Check for the webhook data again
@@ -374,15 +424,36 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
 
                     // Check if the transfer event was successful
                     if (webhookData.getEvent().equals("charge.success")) {
-                        virtualAccount.setBalance(webhookData.getAmount());
+                        virtualAccount.setBalance(webhookData.getAmount().add(virtualAccount.getBalance()));
                         virtualAccountRepository.save(virtualAccount);
-                        response.setStatusCode("00");
+
+                        Payment payment = Payment.builder()
+                                .account(virtualAccount)
+                                .amount(webhookData.getAmount())
+                                .currency(webhookData.getCurrency())
+                                .employeeName(null)
+                                .payrollName(null)
+                                .referenceNumber(webhookData.getReference())
+                                .description("Fund Account")
+                                .transactionType("CREDIT")
+                                .transactionDateTime(LocalDateTime.now())
+                                .build();
+
+                        paymentRepository.save(payment);
+
+                        response.setStatusCode(REQUEST_SUCCESS);
                         response.setStatusMessage("Bank transfer successful");
+                        response.setData(convertToPaymentDTO(payment));
+
                     } else {
                         log.warn("Bank transfer failed for reference: {}", referenceNumber);
-                        response.setStatusCode("49");
+                        response.setStatusCode(STATUS_400);
                         response.setStatusMessage("Bank transfer failed");
                     }
+                }else{
+                    response.setStatusCode(STATUS_400);
+                    response.setStatusMessage("Bank transfer failed");
+                    return response;
                 }
             }
         } catch (Exception e) {
@@ -390,6 +461,105 @@ public class VirtualAccountServiceImpl implements IVirtualAccountService {
             throw new RuntimeException(e);
         }
 
+        return response;
+    }
+
+    private VirtualAccount getVirtualAccountOfEmployer() {
+        VirtualAccount virtualAccount = new VirtualAccount();
+        // Retrieve virtual account linked to employer
+        Optional<VirtualAccount> optionalVirtualAccount =
+                virtualAccountRepository.findByEmployer_EmployerId(EMPLOYER().getEmployerId());
+
+        if (optionalVirtualAccount.isPresent()) {
+            virtualAccount = optionalVirtualAccount.get();
+        }
+        return virtualAccount;
+    }
+
+    @Override
+    public DefaultApiResponse<List<CardRequestDTO>> getCardsForEmployer(){
+        DefaultApiResponse<List<CardRequestDTO>> response;
+        try {
+            response = new DefaultApiResponse<>();
+
+            VirtualAccount account = getVirtualAccountOfEmployer();
+            List<Card> cards = cardRepository.findAllByAccount_AccountId(account.getAccountId());
+            List<CardRequestDTO> cardData = new ArrayList<>();
+
+            for (Card card : cards) {
+                CardRequestDTO cardRequestDTO = toDto(card);
+                cardData.add(cardRequestDTO);
+            }
+
+            response.setStatusCode(REQUEST_SUCCESS);
+            response.setStatusMessage("Cards Retrieved successfully");
+            response.setData(cardData);
+
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+
+        return response;
+    }
+
+    private CardRequestDTO toDto(Card card){
+        return  CardRequestDTO.builder()
+                .cardId(card.getCardId())
+                .cardNumber(card.getCardNumber())
+                .expiryMonth(card.getExpiryMonth())
+                .expiryYear(card.getExpiryYear())
+                .build();
+    }
+
+    @Override
+    public DefaultApiResponse<CardRequestDTO> saveCard(CardRequestDTO requestBody){
+        DefaultApiResponse<CardRequestDTO> response;
+        try {
+            response = new DefaultApiResponse<>();
+
+            VirtualAccount account = getVirtualAccountOfEmployer();
+            Card card = Card.builder()
+                    .cardNumber(requestBody.getCardNumber())
+                    .expiryMonth(requestBody.getExpiryMonth())
+                    .expiryYear(requestBody.getExpiryYear())
+                    .cardPin(requestBody.getCardPin())
+                    .cvv(requestBody.getCvv())
+                    .account(account)
+                    .build();
+
+            cardRepository.save(card);
+
+            response.setStatusCode(REQUEST_SUCCESS);
+            response.setStatusMessage("Card SAVED successfully");
+            response.setData(toDto(card));
+
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
+        return response;
+    }
+
+    @Override
+    public DefaultApiResponse<?> deleteCard(Long cardId){
+        DefaultApiResponse<CardRequestDTO> response;
+        Card card = new Card();
+        try {
+            response = new DefaultApiResponse<>();
+
+            VirtualAccount account = getVirtualAccountOfEmployer();
+            Optional<Card> cardOptional = cardRepository.findById(cardId);
+            if (cardOptional.isPresent()) {
+                card = cardOptional.get();
+            }
+            account.getCards().remove(card);
+            cardRepository.delete(card);
+
+            response.setStatusCode(REQUEST_SUCCESS);
+            response.setStatusMessage("Card Deleted successfully");
+
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
+        }
         return response;
     }
 }

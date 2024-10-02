@@ -1,6 +1,7 @@
 package com.aalto.paycraft.controller;
 
 import com.aalto.paycraft.dto.*;
+import com.aalto.paycraft.entity.Card;
 import com.aalto.paycraft.service.IVirtualAccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Tag(
         name = "Virtual Account Controller",
@@ -112,6 +114,24 @@ public class VirtualAccountController {
     }
 
     /**
+     * Endpoint for processing a bank transfer.
+     *
+     * @param requestDTO The body holding the card details
+     * @return A response entity containing the payment data details and the HTTP status code.
+     */
+    @Operation(summary = "Make Transfer to our Dashboard: Holds details for Transfer")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Bank transfer created successfully"),
+            @ApiResponse(responseCode = "400", description = "Bank transfer initialization failed")
+    })
+    @PostMapping("/fund-card") // POST request for processing card funding
+    public ResponseEntity<DefaultApiResponse<?>> fundByCard(
+            @RequestBody CardFundingRequestDTO requestDTO) {
+        DefaultApiResponse<?> response = virtualAccountService.processCardFunding(requestDTO);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    /**
      * Endpoint for verifying a bank transfer using a reference number.
      *
      * @param referenceNumber The reference number of the bank transfer.
@@ -129,5 +149,39 @@ public class VirtualAccountController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+
+    // GET ALL Cards belonging to the virtual account
+    @GetMapping("/card/all")
+    @Operation(summary = "Get all cards for a virtual account")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "All cards retrieved"),
+            @ApiResponse(responseCode = "404", description = "Virtual account not found")
+    })
+    public ResponseEntity<DefaultApiResponse<List<CardRequestDTO>>> getAllCards(){
+        return ResponseEntity.status(HttpStatus.OK).body(virtualAccountService.getCardsForEmployer());
+    }
+
+
+    // Add a new card to the virtual account
+    @PostMapping("/card/add")
+    @Operation(summary = "Add a new card to the virtual account")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Card successfully added"),
+            @ApiResponse(responseCode = "404", description = "Virtual account not found")
+    })
+    public ResponseEntity<DefaultApiResponse<CardRequestDTO>> addCard(@RequestBody CardRequestDTO requestDTO){
+        return ResponseEntity.status(HttpStatus.OK).body(virtualAccountService.saveCard(requestDTO));
+    }
+
+    // Delete a card belonging to the virtual account
+    @DeleteMapping("/card/delete")
+    @Operation(summary = "Delete card belonging to a virtual account")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Card successfully removed"),
+            @ApiResponse(responseCode = "404", description = "Virtual account not found")
+    })
+    public ResponseEntity<DefaultApiResponse<?>> deleteCard(@RequestParam Long cardId){
+        return ResponseEntity.status(HttpStatus.OK).body(virtualAccountService.deleteCard(cardId));
+    }
 
 }

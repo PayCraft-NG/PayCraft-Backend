@@ -4,6 +4,7 @@ import com.aalto.paycraft.dto.*;
 import com.aalto.paycraft.entity.Employer;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 public interface IVirtualAccountService {
@@ -15,5 +16,14 @@ public interface IVirtualAccountService {
 
     // Make Transfer Related Operations
     DefaultApiResponse<BankTransferDetailsDTO> processBankTransfer(BigDecimal amount);
-    DefaultApiResponse<?> verifyPayment(String referenceNumber); // This would work for both to fixedVirtualAccount or BankTransfer
+    DefaultApiResponse<PaymentDTO> verifyPayment(String referenceNumber); // This would work for both to fixedVirtualAccount or BankTransfer
+
+    // Card Related Items
+    DefaultApiResponse<?> processCardFunding(CardFundingRequestDTO requestBody);
+
+    DefaultApiResponse<List<CardRequestDTO>> getCardsForEmployer();
+
+    DefaultApiResponse<CardRequestDTO> saveCard(CardRequestDTO requestBody);
+
+    DefaultApiResponse<?> deleteCard(Long cardId);
 }

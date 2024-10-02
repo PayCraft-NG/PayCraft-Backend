@@ -5,48 +5,108 @@
     <title>Welcome to PayCraft</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #ffffff;
             color: #333;
-            padding: 20px;
+            padding: 0;
+            margin: 0;
         }
 
         .container {
             max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
+            margin: 50px 20px;
+            padding: 30px;
+            background-color: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #000;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #e0e0e0;
+            margin: 20px 0;
+        }
+
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #555;
+            margin: 15px 0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
         }
 
         a {
-            color: #800080;
-            text-decoration: underline;
+            color: #000;
+            text-decoration: none;
+            font-weight: bold;
+            border-bottom: 1px solid #333;
+        }
+
+        a:hover {
+            color: #555;
+            border-bottom: 1px solid #555;
         }
 
         .signature {
-            margin-top: 30px;
+            text-align: center;
+            margin-top: 40px;
         }
+
         .signature img {
-            max-width: 100%;
-            height: auto;
+            max-width: 100px;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            margin-top: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #333;
+            text-decoration: none;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            color: #fff;
+            background-color: #555;
         }
 
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>Sign Up Notification</h1>
-        <hr>
-        <p>Welcome to PayCraft, <span th:text="${username}"></span>! We're excited to have you on board. </p>
-        <p>Start managing your payroll effortlessly with our platform.</p>
-        <p>If you have any questions, feel free to reach out.</p>
-        <br>
-        <p>Cheers,</p>
-        <p>The PayCraft Team.</p>
-        <p class="footer">
-            <a th:href="@{${paycraftURL}}">Visit PayCraft</a>
-        </p>
-    </div>
-</body>
+<div class="container">
+    <h1>Welcome to PayCraft!</h1>
+    <hr>
+    <p>Hello <span th:text="${username}"></span>,</p>
+    <p>We're thrilled to have you as part of our community! At PayCraft, we help you streamline payroll management effortlessly and efficiently.</p>
+    <p>If you need any assistance, don't hesitate to contact us. We're here to help!</p>
 
+    <div class="signature">
+        <p>Cheers,</p>
+        <p><strong>The PayCraft Team</strong></p>
+    </div>
+
+    <div class="footer">
+        <a class="button" th:href="@{${paycraftURL}}">Get Started with PayCraft</a>
+    </div>
+</div>
+</body>
 </html>

@@ -1,5 +1,7 @@
 package com.aalto.paycraft.service;
 
+import com.aalto.paycraft.dto.BulkPayoutResponseDTO;
+import com.aalto.paycraft.dto.DefaultApiResponse;
 import com.aalto.paycraft.dto.enums.PaymentStatus;
 import com.aalto.paycraft.entity.Payroll;
 import com.aalto.paycraft.repository.PayrollRepository;
@@ -24,6 +26,7 @@ import java.util.concurrent.ScheduledFuture;
 @RequiredArgsConstructor
 public class PayrollJobService implements CommandLineRunner {
     private final TaskScheduler taskScheduler;
+    private final IPaymentService paymentService;
     private final PayrollRepository payrollRepository;
     private final Map<UUID, ScheduledFuture<?>> scheduledFutureMap = new HashMap<>();
     private final IEmailService emailService;
@@ -94,12 +97,17 @@ public class PayrollJobService implements CommandLineRunner {
      * Processes a payroll job and updates its status.
      * @param payroll The payroll entity to process.
      */
-    public void processPayroll(Payroll payroll) {
+    public DefaultApiResponse<?> processPayroll(Payroll payroll) {
+        DefaultApiResponse<?> apiResponse = new DefaultApiResponse<>();
         try {
             payroll.setPayPeriodStart(LocalDate.now());
             payroll.setLastRunDate(LocalDate.now());
 
-            // TODO: Implement payroll processing logic here
+            // Calls the payment service to pay the employees in the payroll.
+            DefaultApiResponse<BulkPayoutResponseDTO> request = paymentService.payEmployeesBulk(payroll.getPayrollId());
+
+            apiResponse.setStatusCode(request.getStatusCode());
+            apiResponse.setStatusMessage(request.getStatusMessage());
 
             payroll.setPaymentStatus(PaymentStatus.PAID);
 
@@ -125,6 +133,8 @@ public class PayrollJobService implements CommandLineRunner {
             // Clean up: remove completed job from map if no longer needed
             cancelScheduledPayroll(payroll.getPayrollId());
         }
+
+        return apiResponse;
     }
 
     /**
