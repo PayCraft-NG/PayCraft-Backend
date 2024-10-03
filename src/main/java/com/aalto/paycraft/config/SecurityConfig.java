@@ -47,7 +47,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "api/v1/ussd",
                                 "api/v1/company/create",
-                                "home",
+                                "/",
                                 "/error**").permitAll() // Permits all Users to access Authentication Endpoints
                         .anyRequest().authenticated()) // Every other Request has to be authenticated.
                 .sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
