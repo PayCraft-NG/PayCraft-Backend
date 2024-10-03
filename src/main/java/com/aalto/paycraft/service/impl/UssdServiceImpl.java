@@ -1,54 +1,138 @@
 package com.aalto.paycraft.service.impl;
 
+import com.aalto.paycraft.dto.PayrollDTO;
 import com.aalto.paycraft.dto.UssdDTO;
+import com.aalto.paycraft.entity.*;
+import com.aalto.paycraft.repository.*;
 import com.aalto.paycraft.service.IUssdService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Optional;
+
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class UssdServiceImpl implements IUssdService {
+    private final EmployerRepository employerRepository;
+    private final CompanyRepository companyRepository;
+    private final PayrollRepository payrollRepository;
+    private final VirtualAccountRepository virtualAccountRepository;
+    private final CardRepository cardRepository;
+    private final Integer[] line = {1};
+    private final Integer[] amount = {0};
+
     @Override
     public String ussdCallback(UssdDTO ussdDTO) {
         String response = "";
 
+        log.info("{}", ussdDTO.getPhoneNumber());
+        // Remove '+' from phoneNumber
+        if(ussdDTO.getPhoneNumber().contains("+"))  ussdDTO.setPhoneNumber(ussdDTO.getPhoneNumber().replace("+",""));
+
+        // Verify PhoneNumber
+        if(!verifyPhoneNumber(ussdDTO.getPhoneNumber())){
+            response = "END Invalid phone number\n";
+            return response;
+        }
+
         if (ussdDTO.getText() == null || ussdDTO.getText().isEmpty()) {
             response = "CON Choose an option \n";
-            response += "1. Fund Wallet \n";
-            response += "2. Account Details \n";
+            response += "1. Fund Wallet with Card\n";
+            response += "2. Account Details \n"; //Done
             response += "3. Run Payroll \n";
-            response += "4. Payroll History";
+            response += "4. Payment History"; //Done
         } else if(ussdDTO.getText().equals("1")){
-            response = "CON Enter Amount to Fund \n";
-            response += "1. ****8624\n";
-            response += "2. ****9493\n";
-        } else if(ussdDTO.getText().equals("1*1")){
-            response = "END Request for *****8624 Sent!\n";
-            response += "You will receive an SMS shortly";
-        }else if(ussdDTO.getText().equals("1*2")){
-            response = "END Request for *****9493 Sent!\n";
-            response += "You will receive an SMS shortly";
-        }
+            response = "CON Enter Amount\n";
+            // List of Cards
+        } //todo: handle fund accounts follow-up
         else if (ussdDTO.getText().equals("2")){
-            response = "END Account Number: 1234567890\n";
-            response += "Account Balance: NGN2,000,000";
+            // Account Details
+            response = getAccountDetails(ussdDTO.getPhoneNumber());
         }
         else if (ussdDTO.getText().equals("3")) {
-            response += "CON List of runnable payrolls.\n";
-            response += "Enter the payroll to run: \n";
-            response += "1. Contractor payroll (KLK)\n";
-            response += "2. Part-time payroll (POI)\n";
-            response += "3. Full-time payroll (UYT)\n";
-        } else if(ussdDTO.getText().equals("3*1")){
-            response = "END Request to run (KLK) was successfully";
-        } else if(ussdDTO.getText().equals("3*2")){
-            response = "END Request to run (POI) was successfully";
-        } else if(ussdDTO.getText().equals("3*3")){
-            response = "END Request to run (UYT) was successfully";
+            //Payrolls
+            response = getPayrollsByCompanyNumber(ussdDTO.getPhoneNumber());
         }
+        // TODO: handle payroll follow-up
         else if (ussdDTO.getText().equals("4")) {
             response = "END Request Successfully!\n";
-            response += "An SMS will be sent to +" + ussdDTO.getPhoneNumber() + " shortly";
+            response += "Payment history will be sent to +" + ussdDTO.getPhoneNumber() + " via SMS";
         }
         return response;
+    }
 
+    private boolean verifyPhoneNumber(String phoneNumber){
+        return employerRepository.existsByPhoneNumber(phoneNumber);
+    }
+
+    private String getAccountDetails(String phoneNumber){
+        String response;
+
+        Optional<Employer> employerOptional = employerRepository.findByPhoneNumber(phoneNumber);
+        if(employerOptional.isPresent()) {
+            Employer employer = employerOptional.get();
+            Optional<VirtualAccount> accountOptional = virtualAccountRepository.findByEmployer_EmployerId(employer.getEmployerId());
+            if (accountOptional.isPresent()){
+                VirtualAccount account = accountOptional.get();
+                response = "END Account Number: "+ account.getAccountNumber() + "\n";
+                response += "Bank Name: " + account.getBankName() + "(" + account.getBankCode() + ")" + "\n";
+                response += "Account Balance: "+ account.getBalance();
+                return response;
+            }
+            else
+                return "END No virtual account found";
+        }
+        else
+            return "END Profile id does not exist";
+    }
+
+    private String getListOfCards(String phoneNumber){
+        final String[] response = {"CON Enter first 6 digits of card to use"};
+
+        Optional<Employer> employerOptional = employerRepository.findByPhoneNumber(phoneNumber);
+        if(employerOptional.isPresent()) {
+            Employer employer = employerOptional.get();
+            Optional<VirtualAccount> accountOptional = virtualAccountRepository.findByEmployer_EmployerId(employer.getEmployerId());
+            if (accountOptional.isPresent())
+            {
+                VirtualAccount account = accountOptional.get();
+                List<Card> cards = cardRepository.findAllByAccount_AccountId(account.getAccountId());
+                if(!cards.isEmpty()){
+                    cards.forEach((card) -> {
+                        response[0] +=  line[0] + " "+ card.getCardNumber() +"\n";
+                        line[0]++;
+                    });
+                    return response[0];
+                }
+                else
+                    return "END No cards found on the account";
+            }
+            else
+                return "END No virtual account found";
+        }
+        else
+            return "END Profile Id does not exist";
+    }
+
+    private String getPayrollsByCompanyNumber(String phoneNumber){
+        final String[] response = {"CON List of runnable payrolls. Enter first 6 of payroll to run \n"};
+
+        Optional<Company> companyOptional = companyRepository.findByCompanyPhoneNumber(phoneNumber);
+        if(companyOptional.isPresent()) {
+            Company company = companyOptional.get();
+            List<Payroll> payrollList = payrollRepository.findAllByCompanyId(company.getCompanyId());
+            if (!payrollList.isEmpty()){
+                payrollList.forEach((payroll) -> {
+                    response[0] += line[0] + " " + payroll.getPayrollId() + "\n";
+                    line[0]++;
+                });
+                return response[0];
+            }
+            return "END No payroll found";
+        }
+        return "END No Company found with this phone number " + phoneNumber + "\n";
     }
 }
