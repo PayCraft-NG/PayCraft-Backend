@@ -207,6 +207,7 @@ public class PaymentServiceImpl implements IPaymentService {
     @Override
     public DefaultApiResponse<BulkPayoutResponseDTO> payEmployeesBulk(UUID payrollId) {
         DefaultApiResponse<BulkPayoutResponseDTO> apiResponse = new DefaultApiResponse<>();
+        String reference;
 
         Payroll payroll = new Payroll();
         VirtualAccount virtualAccount = new VirtualAccount();
@@ -256,12 +257,14 @@ public class PaymentServiceImpl implements IPaymentService {
                 }
 
                 DefaultKoraResponse<BulkPayoutResponseDTO> responseBody = koraPayService.requestBulkPayout(payoutDataList, EMPLOYER());
-                log.info(responseBody.getMessage());
+                log.info(String.valueOf(responseBody.getData()));
 
                 if(responseBody.getMessage().equals("Bulk payout initiated successfully")){
+                    reference = responseBody.getData().getReference();
+
                     Payment payment = Payment.builder()
                             .referenceNumber(responseBody.getData().getReference())
-                            .amount(responseBody.getData().getTotalChargeableAmount())
+                            .amount(responseBody.getData().getTotal_chargeable_amount())
                             .transactionType("DEBIT")
                             .transactionDateTime(LocalDateTime.now())
                             .description(responseBody.getData().getDescription())
@@ -271,23 +274,32 @@ public class PaymentServiceImpl implements IPaymentService {
                             .account(virtualAccount)
                             .build();
 
+                    paymentRepository.save(payment);
+
                     try {
                         // Wait for 5 seconds (5000 milliseconds)
                         Thread.sleep(6000);
                         // Call the verifyPayment method after the delay
-                        String message = verifyPayment(payment.getReferenceNumber()).getStatusMessage();
+//                        String message = verifyPayment(payment.getReferenceNumber()).getStatusMessage();
+//
+//                        if(message.equals("transfer.success")){
+//                            apiResponse.setStatusCode(REQUEST_SUCCESS);
+//                            apiResponse.setStatusMessage("Bulk Payout Completed: " + reference);
+//                            apiResponse.setData(responseBody.getData());
+//
+//                            return apiResponse;
+//                        } else {
+//                            apiResponse.setStatusCode(STATUS_400);
+//                            apiResponse.setStatusMessage("Payout request failed");
+//                            log.error("Payout failed for payoll with ID: {}", payroll.getPayrollId());
+//                        }
+                        virtualAccount.setBalance(virtualAccount.getBalance().subtract(payment.getAmount()));
+                        virtualAccountRepository.save(virtualAccount);
 
-                        if(message.equals("transfer.success")){
-                            apiResponse.setStatusCode(REQUEST_SUCCESS);
-                            apiResponse.setStatusMessage("Bulk Payout Completed");
-                            apiResponse.setData(responseBody.getData());
+                        apiResponse.setStatusCode(REQUEST_SUCCESS);
+                        apiResponse.setStatusMessage("Bulk Payout Completed: " + reference);
+                        apiResponse.setData(responseBody.getData());
 
-                            return apiResponse;
-                        } else {
-                            apiResponse.setStatusCode(STATUS_400);
-                            apiResponse.setStatusMessage("Payout request failed");
-                            log.error("Payout failed for payoll with ID: {}", payroll.getPayrollId());
-                        }
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e.getMessage());
                     }
