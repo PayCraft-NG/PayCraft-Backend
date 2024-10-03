@@ -13,10 +13,10 @@ import java.time.LocalDateTime;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class BulkPayoutResponseDTO {
     private String status;
-    private BigDecimal totalChargeableAmount;
-    private boolean merchantBearsCost;
+    private BigDecimal total_chargeable_amount;
+    private boolean merchant_bears_cost;
     private String currency;
     private String reference;
     private String description;
-    private LocalDateTime createdAt;
+    private LocalDateTime created_at;
 }
