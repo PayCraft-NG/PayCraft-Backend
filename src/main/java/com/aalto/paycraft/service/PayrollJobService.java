@@ -46,7 +46,7 @@ public class PayrollJobService implements CommandLineRunner {
      * Initializes and schedules payroll jobs from the database at startup.
      */
     public void initializePayrollJobs() {
-        List<Payroll> payrollList = payrollRepository.findAddWhereAutomaticIsTrue();
+        List<Payroll> payrollList = payrollRepository.findAllWhereAutomaticIsTrue();
 
         payrollList.forEach(payroll -> {
             // Check if the job is already scheduled to avoid duplicates
