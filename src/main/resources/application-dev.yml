@@ -23,10 +23,12 @@ logging:
         security: DEBUG
 
 secret-string: ${SECRET_STRING:PAYHFUKNSF09839FELIKS9348J39GHIUEWFJR9EF089WUJ4FNR9HG738UJW4WOLLSTONECRAFT}
-kora-secret: ${KORA_SECRET_KEY}
-webhook-dev-url: ${WEBHOOK_URL}
-encryption-key: ${ENCRYPTION_KEY}
-kora-public: ${KORA_PUBLIC_KEY}
+kora-secret: ${KORA_SECRET_KEY:sk_test_cNNwP1m6g3iDBFDjVDFL7xLFTsgL3WZ2HCsn3diK}
+webhook-url: ${WEBHOOK_URL:"https://paycraft-development-backend-v1.onrender.com"}
+encryption-key: ${ENCRYPTION_KEY:qdwgtxpX5kRyNzua8eV2WwQrvTu3bP9F}
+kora-public: ${KORA_PUBLIC_KEY:pk_test_i9LYCDrBR3dfe6AfZhjsSLn7XFxWYR8bUy5yPBPQ}
+webhook-dev-url: ${WEBHOOK_DEV_URL:https://paycraft-development-backend-v1.onrender.com/webhook/}
+
 frontend:
   url: ${FRONTEND_URL:https://paycraft-dev.netlify.app/}
 
