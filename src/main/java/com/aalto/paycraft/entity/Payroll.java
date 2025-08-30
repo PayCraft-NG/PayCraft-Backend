@@ -51,6 +51,7 @@ public class Payroll extends BaseEntity {
     @JoinColumn(name = "companyId", referencedColumnName = "companyId", nullable = false)
     private Company company; // Reference to the company that owns this payroll
 
+    @Builder.Default
     @ManyToMany
     @JoinTable(
             name = "payroll_employee", // Name of the join table
