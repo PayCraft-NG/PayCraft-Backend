@@ -66,13 +66,29 @@ public class SecurityConfig {
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.addAllowedOrigin("http://localhost:5173");
+        configuration.addAllowedOrigin("http://localhost:3000");
         configuration.addAllowedOrigin("https://paycraft-dev.netlify.app");
         configuration.addAllowedOrigin(frontendUrl);
 
         log.info("====== frontendURl (security config) =====: {}", frontendUrl);
 
-        configuration.addAllowedMethod("*"); // Allows all methods
-        configuration.addAllowedHeader("*"); // Allows all headers.
+        // Restrict to specific HTTP methods only
+        configuration.addAllowedMethod("GET");
+        configuration.addAllowedMethod("POST");
+        configuration.addAllowedMethod("PUT");
+        configuration.addAllowedMethod("DELETE");
+        configuration.addAllowedMethod("PATCH");
+        configuration.addAllowedMethod("OPTIONS");
+        
+        // Restrict to specific headers only
+        configuration.addAllowedHeader("Authorization");
+        configuration.addAllowedHeader("Content-Type");
+        configuration.addAllowedHeader("X-Requested-With");
+        configuration.addAllowedHeader("Accept");
+        configuration.addAllowedHeader("Origin");
+        configuration.addAllowedHeader("Access-Control-Request-Method");
+        configuration.addAllowedHeader("Access-Control-Request-Headers");
+        
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

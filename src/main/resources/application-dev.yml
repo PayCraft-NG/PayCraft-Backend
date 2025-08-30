@@ -3,9 +3,9 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: jdbc:mysql://mysql-1efceed6-bakaredavid007-2598.d.aivencloud.com:11165/${DATABASE_NAME:defaultdb}
-    username: ${DATABASE_USERNAME:avnadmin}
-    password: ${DATABASE_DEV_PASSWORD}
+    url: jdbc:mysql://localhost/${DATABASE_NAME:paycraft}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -31,6 +31,12 @@ webhook-dev-url: ${WEBHOOK_DEV_URL:https://paycraft-development-backend-v1.onren
 
 frontend:
   url: ${FRONTEND_URL:https://paycraft-dev.netlify.app/}
+
+# Disable mail health check for local development
+management:
+  health:
+    mail:
+      enabled: false
 
 server:
   port: 6020

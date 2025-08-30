@@ -1,6 +1,6 @@
 spring:
   mail:
-    host: smtp.gmail.com # smtp.gmail.com, smtp-mail.outlook.com, smtp.office365.com
+    host: smtp.gmail.com 
     port: 465
     username: ${EMAIL_SENDER}
     password: ${EMAIL_PASSWORD}
@@ -18,7 +18,7 @@ spring:
   application:
     name: PayCraft
   profiles:
-    active: qa
+    active: dev
 
 payroll:
   job:
