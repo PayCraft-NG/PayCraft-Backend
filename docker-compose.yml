@@ -40,12 +40,12 @@ services:
       DATABASE_DEV_PASSWORD: paycraft_password
       
       # Security
-      SECRET_STRING: PAYHFUKNSF09839FELIKS9348J39GHIUEWFJR9EF089WUJ4FNR9HG738UJW4WOLLSTONECRAFT
-      ENCRYPTION_KEY: qdwgtxpX5kRyNzua8eV2WwQrvTu3bP9F
+      SECRET_STRING: 
+      ENCRYPTION_KEY: 
       
       # KoraPay Configuration (Use test keys)
-      KORA_SECRET_KEY: sk_test_cNNwP1m6g3iDBFDjVDFL7xLFTsgL3WZ2HCsn3diK
-      KORA_PUBLIC_KEY: pk_test_i9LYCDrBR3dfe6AfZhjsSLn7XFxWYR8bUy5yPBPQ
+      KORA_SECRET_KEY: 
+      KORA_PUBLIC_KEY: 
       
       # Email Configuration
       EMAIL_SENDER: noreply@paycraft.com
