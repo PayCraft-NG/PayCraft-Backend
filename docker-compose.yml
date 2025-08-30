@@ -90,7 +90,7 @@ services:
       - redis_data:/data
     networks:
       - paycraft-network
-    command: redis-server --requirepass paycraft_redis_password
+    command: redis-server --requirepass 
 
   # Nginx Reverse Proxy (for production-like setup)
   nginx:
