@@ -1,3 +1,6 @@
+-- Deprecated: schema is managed by Flyway (see resources/db/migration/).
+-- Kept for reference only; do not run against production databases.
+
 CREATE TABLE Employer (
     employerId UUID PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,

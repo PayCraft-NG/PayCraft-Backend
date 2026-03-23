@@ -32,5 +32,6 @@ public class Card {
     private String cardPin;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "accountId", nullable = false)
     private VirtualAccount account;
 }
