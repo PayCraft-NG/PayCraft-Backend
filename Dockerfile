@@ -1,14 +1,21 @@
-# Use a minimal JDK 17 base image
-FROM eclipse-temurin:17-jdk-alpine
+# Multi-stage build: Maven package, then JRE runtime
+FROM maven:3.9.9-eclipse-temurin-17 AS build
+WORKDIR /build
 
-# Set the working directory inside the container
+COPY pom.xml .
+RUN mvn -q -B dependency:go-offline -DskipTests || true
+
+COPY src ./src
+RUN mvn -q -B package -DskipTests
+
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
-# Copy the built Spring Boot application JAR file into the container
-COPY target/paycraft-0.0.1-SNAPSHOT.jar /app/app.jar
+RUN groupadd --system spring && useradd --system --gid spring spring
+COPY --from=build /build/target/paycraft-0.0.1-SNAPSHOT.jar app.jar
+RUN chown spring:spring app.jar
 
-# Expose the port the Spring Boot app runs on (default: 8080)
+USER spring:spring
 EXPOSE 6020
 
-# Run the Spring Boot application
 ENTRYPOINT ["java", "-jar", "app.jar"]

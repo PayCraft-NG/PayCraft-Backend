@@ -1,0 +1,11 @@
+target/
+.git
+.gitignore
+.idea
+*.iml
+.env
+*.log
+log/
+node_modules/
+.cursor
+build_script.sh
