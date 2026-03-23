@@ -19,7 +19,6 @@ public class EmployerMapper {
                 .streetAddress(employer.getStreetAddress())
                 .jobTitle(employer.getJobTitle())
                 .bvn(employer.getBvn())
-                .password(employer.getPassword())
                 .employerId(employer.getEmployerId())
                 .build();
     }

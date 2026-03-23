@@ -25,7 +25,6 @@ import java.util.UUID;
         description = "Schema to hold Employer Information"
 )
 public class EmployerDTO {
-    @Size(min = 3, max = 100)
     @Schema(
             description = "First name of the employer",
             example = "John"
