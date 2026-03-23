@@ -1,0 +1,742 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		"name": "PayCraft API",
+		"description": "PayCraft REST API — example requests for all controllers.\n\n**Setup:** Set `baseUrl` (e.g. `http://localhost:6020`). Run **Login**; the test script saves `accessToken` and `refreshToken` from `data`.\n\n**Auth:** Most routes need `Authorization: Bearer {{accessToken}}`. Public routes override with **No Auth** (login, refresh, employer signup, company create, webhook, USSD).\n\nAlso available: OpenAPI at `{{baseUrl}}/v3/api-docs` and Swagger UI at `{{baseUrl}}/swagger-ui/index.html`.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:6020"
+		},
+		{
+			"key": "accessToken",
+			"value": ""
+		},
+		{
+			"key": "refreshToken",
+			"value": ""
+		},
+		{
+			"key": "employerId",
+			"value": "11111111-1111-1111-1111-111111111111"
+		},
+		{
+			"key": "employeeId",
+			"value": "22222222-2222-2222-2222-222222222222"
+		},
+		{
+			"key": "payrollId",
+			"value": "33333333-3333-3333-3333-333333333333"
+		},
+		{
+			"key": "referenceNumber",
+			"value": "paycraft-ref-example"
+		},
+		{
+			"key": "cardId",
+			"value": "1"
+		}
+	],
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"try {",
+									"  const j = pm.response.json();",
+									"  if (j.data) {",
+									"    if (j.data.accessToken) pm.collectionVariables.set('accessToken', j.data.accessToken);",
+									"    if (j.data.refreshToken) pm.collectionVariables.set('refreshToken', j.data.refreshToken);",
+									"  }",
+									"} catch (e) {}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"emailAddress\": \"john.doe@example.com\",\n  \"password\": \"P@ssword1!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseUrl}}/api/v1/auth/login",
+						"description": "Public. Returns `DefaultApiResponse` with `data.accessToken`, `data.refreshToken`, etc."
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"try {",
+									"  const j = pm.response.json();",
+									"  if (j.data && j.data.accessToken) pm.collectionVariables.set('accessToken', j.data.accessToken);",
+									"  if (j.data && j.data.refreshToken) pm.collectionVariables.set('refreshToken', j.data.refreshToken);",
+									"} catch (e) {}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseUrl}}/api/v1/auth/refresh-token"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Employer",
+			"item": [
+				{
+					"name": "Create employer (signup)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"emailAddress\": \"john.doe@example.com\",\n  \"phoneNumber\": \"2348012345678\",\n  \"streetAddress\": \"1234 Elm Street, Lagos\",\n  \"jobTitle\": \"Software Engineer\",\n  \"bvn\": \"12345678901\",\n  \"password\": \"P@ssword1!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseUrl}}/api/v1/employer/create",
+						"description": "Public. Phone must be 13 digits (e.g. 234…). BVN 11 digits. Password: upper, lower, digit, special."
+					},
+					"response": []
+				},
+				{
+					"name": "Get current employer",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/employer/details"
+					},
+					"response": []
+				},
+				{
+					"name": "Update employer",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"emailAddress\": \"john.doe@example.com\",\n  \"phoneNumber\": \"2348012345678\",\n  \"jobTitle\": \"Engineering Manager\",\n  \"bvn\": \"12345678901\",\n  \"streetAddress\": \"123 Main St\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseUrl}}/api/v1/employer/update"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete employer",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/employer/delete"
+					},
+					"response": []
+				},
+				{
+					"name": "Update password",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"oldPassword\": \"OldP@ssword1!\",\n  \"newPassword\": \"NewP@ssword1!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseUrl}}/api/v1/employer/update/password"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Company",
+			"item": [
+				{
+					"name": "Create company",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"companyName\": \"Aalto Technologies\",\n  \"companySize\": \"MEDIUM\",\n  \"companyEmailAddress\": \"info@aalto.com\",\n  \"companyPhoneNumber\": \"2348012345678\",\n  \"companyStreetAddress\": \"1234 Tech Park, Lagos\",\n  \"companyCountry\": \"Nigeria\",\n  \"companyCurrency\": \"NGN\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseUrl}}/api/v1/company/create?employerId={{employerId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Get current company",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/company/details"
+					},
+					"response": []
+				},
+				{
+					"name": "List companies (paged)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/company/companies?page=0&size=10"
+					},
+					"response": []
+				},
+				{
+					"name": "Update company",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"companyName\": \"Aalto Technologies Ltd\",\n  \"companySize\": \"LARGE\",\n  \"companyEmailAddress\": \"update@aalto.com\",\n  \"companyPhoneNumber\": \"2348012345678\",\n  \"companyStreetAddress\": \"5678 New Tech Park\",\n  \"companyCountry\": \"Nigeria\",\n  \"companyCurrency\": \"NGN\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseUrl}}/api/v1/company/update"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete company",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/company/delete"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Employee",
+			"item": [
+				{
+					"name": "Create employee",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"emailAddress\": \"jane.smith@aalto.com\",\n  \"dateOfBirth\": \"1990-01-15\",\n  \"streetAddress\": \"4567 Code Ave, Lagos\",\n  \"phoneNumber\": \"2349876543210\",\n  \"jobTitle\": \"Software Engineer\",\n  \"department\": \"Engineering\",\n  \"bvn\": \"10987654321\",\n  \"bankName\": \"Zenith Bank\",\n  \"accountNumber\": \"1234567890\",\n  \"salaryAmount\": 500000.00,\n  \"salaryCurrency\": \"NGN\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseUrl}}/api/v1/employee/create"
+					},
+					"response": []
+				},
+				{
+					"name": "List all employees",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/employee/all"
+					},
+					"response": []
+				},
+				{
+					"name": "Get employee by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/employee/{{employeeId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Update employee",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"emailAddress\": \"jane.smith@aalto.com\",\n  \"dateOfBirth\": \"1990-01-15\",\n  \"streetAddress\": \"4567 Code Ave, Lagos\",\n  \"phoneNumber\": \"2349876543210\",\n  \"jobTitle\": \"Senior Engineer\",\n  \"department\": \"Engineering\",\n  \"bvn\": \"10987654321\",\n  \"bankName\": \"Zenith Bank\",\n  \"accountNumber\": \"1234567890\",\n  \"salaryAmount\": 550000.00,\n  \"salaryCurrency\": \"NGN\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseUrl}}/api/v1/employee/{{employeeId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete employee",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/employee/{{employeeId}}"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payroll",
+			"item": [
+				{
+					"name": "Create payroll",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"payrollName\": \"Engineering — March\",\n  \"automatic\": false,\n  \"totalSalary\": 50000.00,\n  \"payPeriodStart\": \"2025-03-01\",\n  \"payPeriodEnd\": \"2025-03-31\",\n  \"cronExpression\": null,\n  \"paymentStatus\": \"PENDING\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseUrl}}/api/v1/payroll/create"
+					},
+					"response": []
+				},
+				{
+					"name": "Add employee to payroll",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/payroll/add-employee/{{payrollId}}?employeeId={{employeeId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Remove employee from payroll",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/payroll/remove-employee/{{payrollId}}?employeeId={{employeeId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Update payroll",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"automatic\": true,\n  \"cronExpression\": \"0 0 9 * * MON\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseUrl}}/api/v1/payroll/update/{{payrollId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete payroll",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/payroll/delete/{{payrollId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "List employees on payroll",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/payroll/employees/{{payrollId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Get payroll by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/payroll/{{payrollId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "List all payrolls",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/payroll/all"
+					},
+					"response": []
+				},
+				{
+					"name": "Run payroll",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/payroll/run/{{payrollId}}"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Virtual account & funding",
+			"item": [
+				{
+					"name": "Get virtual account details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/account/details"
+					},
+					"response": []
+				},
+				{
+					"name": "VBA transactions (Kora)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/account/transactions?startDate=2025-01-01&endDate=2025-03-31&page=1&limit=100"
+					},
+					"response": []
+				},
+				{
+					"name": "List payments (paginated)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/account/payments?pageSize=10&pageNumber=0"
+					},
+					"response": []
+				},
+				{
+					"name": "Initiate bank transfer (fund wallet)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/account/transfer?amount=10000.00"
+					},
+					"response": []
+				},
+				{
+					"name": "Fund via card",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"cardNumber\": \"4084127883172787\",\n  \"cvv\": \"123\",\n  \"expiryMonth\": \"09\",\n  \"expiryYear\": \"28\",\n  \"cardPin\": \"1234\",\n  \"amount\": 5000.00\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseUrl}}/api/v1/account/fund-card"
+					},
+					"response": []
+				},
+				{
+					"name": "Verify bank transfer",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/account/verify/{{referenceNumber}}"
+					},
+					"response": []
+				},
+				{
+					"name": "List saved cards",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/account/card/all"
+					},
+					"response": []
+				},
+				{
+					"name": "Add saved card",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"cardNumber\": \"4084127883172787\",\n  \"expiryMonth\": \"09\",\n  \"expiryYear\": \"28\",\n  \"cvv\": \"123\",\n  \"cardPin\": \"1234\",\n  \"cardId\": 0\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseUrl}}/api/v1/account/card/add"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete saved card",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/account/card/delete?cardId={{cardId}}"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payments (payouts & banks)",
+			"item": [
+				{
+					"name": "Pay single employee",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/account/pay?employeeId={{employeeId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "Bulk pay payroll",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/account/pay/bulk?payrollId={{payrollId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "List banks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/account/banks"
+					},
+					"response": []
+				},
+				{
+					"name": "Verify payment by reference",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/account/verify-pay/{{referenceNumber}}"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "KoraPay webhook & misc",
+			"item": [
+				{
+					"name": "KoraPay webhook",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Korapay-Signature",
+								"value": "<hmac-from-korapay>",
+								"description": "Replace with valid signature for the raw body in real tests."
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"event\": \"charge.success\",\n  \"data\": {\n    \"reference\": \"REF-EXAMPLE-001\",\n    \"amount\": 1000,\n    \"currency\": \"NGN\"\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseUrl}}/webhook"
+					},
+					"response": []
+				},
+				{
+					"name": "Home (health probe)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/home"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "USSD",
+			"item": [
+				{
+					"name": "USSD callback (GET)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/ussd?sessionId=sess-001&serviceCode=*123#&phoneNumber=2348012345678&text="
+					},
+					"response": []
+				},
+				{
+					"name": "USSD callback (POST)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/ussd?sessionId=sess-001&serviceCode=*123#&phoneNumber=2348012345678&text=1"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
