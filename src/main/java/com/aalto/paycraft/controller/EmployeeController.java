@@ -5,7 +5,10 @@ import com.aalto.paycraft.dto.EmployeeDto;
 import com.aalto.paycraft.dto.EmployeeRequestDto;
 import com.aalto.paycraft.service.IEmployeeService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +19,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @Tag(
-        name = "Employee Controller",
-        description = "CRUD REST APIs to CREATE, READ, UPDATE, and DELETE Employee details"
+        name = "Employees",
+        description = "Create, list, read, update, and delete employees for the authenticated employer context."
 )
+@SecurityRequirement(name = "bearerAuth")
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -37,13 +40,14 @@ public class EmployeeController {
      * @return A response entity containing the status of the creation, employee profile data, and the HTTP status code.
      */
     @Operation(
-            summary = "Create Employee REST API",
-            description = "REST API to create a new employer"
+            summary = "Create employee",
+            description = "Create a new employee profile linked to the current company context."
     )
-    @ApiResponse(
-            responseCode = "201",
-            description = "Employee successfully created"
-    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Employee created"),
+            @ApiResponse(responseCode = "400", description = "Validation or business error"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT")
+    })
     @PostMapping("/create")
     public ResponseEntity<DefaultApiResponse<EmployeeDto>> createEmployee(@Valid @RequestBody EmployeeRequestDto requestBody){
         DefaultApiResponse<EmployeeDto> response = employeeService.createEmployee(requestBody);
@@ -56,14 +60,14 @@ public class EmployeeController {
      * @return A response entity containing the list of employee profiles, status message, and the HTTP status code.
      */
     @Operation(
-            summary = "Get All Employees REST API",
-            description = "REST API to get all non-deleted employee profiles"
+            summary = "List all employees",
+            description = "Returns all non-deleted employees visible to the authenticated employer."
     )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Employee profiles successfully retrieved"
-    )
-    @GetMapping ("/all")// This will handle GET requests to /employees
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Employees retrieved"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT")
+    })
+    @GetMapping("/all")
     public ResponseEntity<DefaultApiResponse<List<EmployeeDto>>> getEmployees() {
         DefaultApiResponse<List<EmployeeDto>> response = employeeService.getAllEmployees(); // Call the service method
         return ResponseEntity.status(HttpStatus.OK).body(response); // Return the response with OK status
@@ -76,15 +80,18 @@ public class EmployeeController {
      * @return A response entity containing the employee profile data, status message, and the HTTP status code.
      */
     @Operation(
-            summary = "Get Employee REST API",
-            description = "REST API to get employer details"
+            summary = "Get employee by ID",
+            description = "Fetch a single employee by identifier."
     )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Employee details successfully retrieved"
-    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Employee found"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT"),
+            @ApiResponse(responseCode = "404", description = "Employee not found")
+    })
     @GetMapping("/{employeeId}")
-    public ResponseEntity<DefaultApiResponse<EmployeeDto>> getEmployee(@Valid @PathVariable("employeeId") String employeeId){
+    public ResponseEntity<DefaultApiResponse<EmployeeDto>> getEmployee(
+            @Parameter(description = "Employee identifier (UUID string)", required = true)
+            @PathVariable("employeeId") String employeeId) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(employeeService.getEmployee(employeeId));
     }
@@ -97,16 +104,20 @@ public class EmployeeController {
      * @return A response entity containing the status of the update, updated employee profile data, and the HTTP status code.
      */
     @Operation(
-            summary = "Update Employee REST API",
-            description = "REST API to update employee details"
+            summary = "Update employee",
+            description = "Update an existing employee profile."
     )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Employee details successfully updated"
-    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Employee updated"),
+            @ApiResponse(responseCode = "400", description = "Validation or business error"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT"),
+            @ApiResponse(responseCode = "404", description = "Employee not found")
+    })
     @PutMapping("/{employeeId}")
-    public ResponseEntity<DefaultApiResponse<EmployeeDto>> updateEmployee(@Valid @RequestBody EmployeeRequestDto requestBody,
-                                                                          @Valid @PathVariable("employeeId") String employeeId ){
+    public ResponseEntity<DefaultApiResponse<EmployeeDto>> updateEmployee(
+            @Valid @RequestBody EmployeeRequestDto requestBody,
+            @Parameter(description = "Employee identifier (UUID string)", required = true)
+            @PathVariable("employeeId") String employeeId) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(employeeService.updateEmployee(requestBody, employeeId ));
     }
@@ -118,17 +129,19 @@ public class EmployeeController {
      * @return A response entity containing the status of the deletion, a status message, and the HTTP status code.
      */
     @Operation(
-            summary = "Delete Employee REST API",
-            description = "REST API to delete employee"
+            summary = "Delete employee",
+            description = "Soft-delete or remove an employee by ID."
     )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Employee successfully deleted"
-    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Employee deleted"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT"),
+            @ApiResponse(responseCode = "404", description = "Employee not found")
+    })
     @DeleteMapping("/{employeeId}")
     public ResponseEntity<DefaultApiResponse<EmployeeDto>> deleteEmployeeProfile(
-            @Valid @PathVariable("employeeId") String employeeId
-    ){
+            @Parameter(description = "Employee identifier (UUID string)", required = true)
+            @PathVariable("employeeId") String employeeId
+    ) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(employeeService.deleteEmployee(employeeId));
     }

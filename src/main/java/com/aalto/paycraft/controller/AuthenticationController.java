@@ -3,7 +3,11 @@ package com.aalto.paycraft.controller;
 import com.aalto.paycraft.dto.*;
 import com.aalto.paycraft.service.IAuthenticationService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,9 +22,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @Tag(
-        name = "Authentication Controller",
-        description = "POST Method APIs to Login and Refresh Token of USER ( Employers )"
+        name = "Authentication",
+        description = "Login and token refresh for employers (JWT access + refresh tokens)."
 )
+@SecurityRequirements
 @Slf4j @RestController
 @RequiredArgsConstructor
 @RequestMapping(value = "api/v1/auth", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -36,13 +41,26 @@ public class AuthenticationController {
      * @return a response containing the authorization details (e.g., access authToken) if login is successful.
      */
     @Operation(
-            summary = "Login USER",
-            description = "REST API to allow SignedUp Users to Login"
+            summary = "Login",
+            description = "Authenticate with email and password; returns access and refresh tokens."
     )
-    @ApiResponse(
-            responseCode = "201",
-            description = "HTTP Status CREATED"
-    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Login successful",
+                    content = @Content(schema = @Schema(implementation = DefaultApiResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request body or validation error",
+                    content = @Content(schema = @Schema(implementation = ErrorResponseDto.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Invalid credentials",
+                    content = @Content(schema = @Schema(implementation = ErrorResponseDto.class))
+            )
+    })
     @PostMapping("/login")
     public ResponseEntity<DefaultApiResponse<AuthorizationResponseDto>> login(@RequestBody @Valid LoginRequestDto request){
         DefaultApiResponse<AuthorizationResponseDto> response = authenticationService.login(request);
@@ -55,13 +73,26 @@ public class AuthenticationController {
      * @return a response containing the new authorization details (e.g., new access authToken).
      */
     @Operation(
-            summary = "Refresh Token of Employer",
-            description = "REST API to Refresh Token"
+            summary = "Refresh access token",
+            description = "Exchange a valid refresh token for new access (and optionally refresh) tokens."
     )
-    @ApiResponse(
-            responseCode = "201",
-            description = "HTTP Status CREATED"
-    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Tokens refreshed",
+                    content = @Content(schema = @Schema(implementation = DefaultApiResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid refresh token payload",
+                    content = @Content(schema = @Schema(implementation = ErrorResponseDto.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Refresh token invalid or expired",
+                    content = @Content(schema = @Schema(implementation = ErrorResponseDto.class))
+            )
+    })
     @PostMapping("/refresh-token")
     public ResponseEntity<DefaultApiResponse<AuthorizationResponseDto>> refreshToken(@RequestBody @Valid RefreshTokenRequestDto request){
         DefaultApiResponse<AuthorizationResponseDto> response = authenticationService.refreshToken(request);

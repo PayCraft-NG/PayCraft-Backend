@@ -5,7 +5,11 @@ import com.aalto.paycraft.dto.CompanyUpdateDTO;
 import com.aalto.paycraft.dto.DefaultApiResponse;
 import com.aalto.paycraft.service.ICompanyService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,9 +22,10 @@ import java.util.List;
 import java.util.UUID;
 
 @Tag(
-        name = "Company Controller",
-        description = "CRUD REST APIs in payroll to CREATE, READ, UPDATE, and DELETE Company details"
+        name = "Companies",
+        description = "Company CRUD for employers. Creating a company is allowed without JWT when employerId is supplied."
 )
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(value = "/api/v1/company", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -28,29 +33,31 @@ public class CompanyController {
     private final ICompanyService iCompanyService;
 
     @Operation(
-            summary = "Create Company REST API",
-            description = "REST API to create a new Company"
+            summary = "Create company",
+            description = "Public when called with a valid employerId (post-signup onboarding)."
     )
-    @ApiResponse(
-            responseCode = "201",
-            description = "HTTP Status CREATED"
-    )
+    @SecurityRequirements
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Company created"),
+            @ApiResponse(responseCode = "400", description = "Validation error or invalid employerId")
+    })
     @PostMapping(value = "/create")
     public ResponseEntity<DefaultApiResponse<CompanyDTO>> createCompany(
             @Valid @RequestBody CompanyDTO companyDTO,
-            @Valid @RequestParam("employerId") UUID employerId){
+            @Parameter(description = "Employer UUID that owns the new company", required = true)
+            @Valid @RequestParam("employerId") UUID employerId) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(iCompanyService.createCompany(companyDTO, employerId));
     }
 
     @Operation(
-            summary = "Get Company Details REST API",
-            description = "REST API to get company details by companyId"
+            summary = "Get current company",
+            description = "Returns the active company for the authenticated employer context."
     )
-    @ApiResponse(
-            responseCode = "200",
-            description = "HTTP Status OK"
-    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Company retrieved"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT")
+    })
     @GetMapping(value = "/details")
     public ResponseEntity<DefaultApiResponse<CompanyDTO>> getCompany(){
         return ResponseEntity.status(HttpStatus.OK)
@@ -58,29 +65,30 @@ public class CompanyController {
     }
 
     @Operation(
-            summary = "Get List of Companies REST API",
-            description = "REST API to get a list of companies by employerId"
+            summary = "List companies",
+            description = "Paginated list of companies for the authenticated employer."
     )
-    @ApiResponse(
-            responseCode = "200",
-            description = "HTTP Status OK"
-    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Page of companies"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT")
+    })
     @GetMapping(value = "/companies")
     public ResponseEntity<DefaultApiResponse<List<CompanyDTO>>> getCompaniesByEmployerId(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size){
+            @Parameter(description = "Zero-based page index") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(iCompanyService.getCompaniesByEmployerId(page, size));
     }
 
     @Operation(
-            summary = "Update Company Details REST API",
-            description = "REST API to update company details by companyId"
+            summary = "Update company",
+            description = "Update the current company profile."
     )
-    @ApiResponse(
-            responseCode = "200",
-            description = "HTTP Status OK"
-    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Company updated"),
+            @ApiResponse(responseCode = "400", description = "Validation error"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT")
+    })
     @PutMapping(value = "/update")
     public ResponseEntity<DefaultApiResponse<CompanyDTO>> updateCompany(
             @Valid @RequestBody CompanyUpdateDTO companyUpdateDTO){
@@ -89,13 +97,13 @@ public class CompanyController {
     }
 
     @Operation(
-            summary = "Delete Company REST API",
-            description = "REST API to delete company by companyId"
+            summary = "Delete company",
+            description = "Deletes the current company per application rules."
     )
-    @ApiResponse(
-            responseCode = "200",
-            description = "HTTP Status OK"
-    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Company deleted"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT")
+    })
     @DeleteMapping(value = "/delete")
     public ResponseEntity<DefaultApiResponse<CompanyDTO>> deleteCompany(){
         return ResponseEntity.status(HttpStatus.OK)

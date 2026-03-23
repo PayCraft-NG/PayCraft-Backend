@@ -4,8 +4,12 @@ import com.aalto.paycraft.dto.WebhookResponseDTO;
 import com.aalto.paycraft.service.KoraPayWebhook;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +23,8 @@ import java.util.concurrent.CompletableFuture;
 
 
 @Tag(
-        name = "KoraPayWebhook Controller",
-        description = "ENDPOINT to handle Notifications from KoraPay - Server Side Only"
+        name = "KoraPay webhooks",
+        description = "Inbound webhooks from KoraPay (signature header). Optional health endpoint for authenticated clients."
 )
 @RestController @Slf4j
 @RequiredArgsConstructor
@@ -30,14 +34,27 @@ public class KoraPayWebhookController {
     // Dependency on KoraPayWebhook service, which handles the business logic for processing webhooks.
     private final KoraPayWebhook webhookService;
 
-    @Operation(summary = "Handle Webhook Response for Bank Transfer")
+    @Operation(
+            summary = "KoraPay webhook",
+            description = "Async handler for KoraPay events (e.g. transfers). Validates X-Korapay-Signature."
+    )
+    @SecurityRequirements
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Webhook Verified"),
-            @ApiResponse(responseCode = "400", description = "Invalid payload")
+            @ApiResponse(responseCode = "200", description = "Webhook accepted and processed"),
+            @ApiResponse(responseCode = "400", description = "Invalid payload or signature"),
+            @ApiResponse(responseCode = "500", description = "Unexpected processing error")
     })
     @PostMapping("/webhook")
     @Async(value = "taskExecutor")
-    public CompletableFuture<ResponseEntity<String>> handleKoraPayWebHook(@RequestBody WebhookResponseDTO<?> payload, @RequestHeader("X-Korapay-Signature") String signature) {
+    public CompletableFuture<ResponseEntity<String>> handleKoraPayWebHook(
+            @RequestBody WebhookResponseDTO<?> payload,
+            @Parameter(
+                    name = "X-Korapay-Signature",
+                    in = ParameterIn.HEADER,
+                    required = true,
+                    description = "KoraPay HMAC signature for the raw request body"
+            )
+            @RequestHeader("X-Korapay-Signature") String signature) {
         // Method receives a webhook payload and signature header for validation.
         try {
             // Logging the incoming payload for debugging purposes.
@@ -60,6 +77,15 @@ public class KoraPayWebhookController {
         }
     }
 
+    @Operation(
+            summary = "Home",
+            description = "Simple text probe. Requires JWT like other authenticated API routes."
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Plain text response"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT")
+    })
     @GetMapping("/home")
     public ResponseEntity<String> getHome() {
         return ResponseEntity.status(HttpStatus.OK).body("Home Page");
