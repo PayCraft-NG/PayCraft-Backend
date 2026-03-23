@@ -1,6 +1,7 @@
 package com.aalto.paycraft.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotEmpty;
 
 @Schema(
         name = "RefreshTokenRequestDTO",
@@ -8,6 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 )
 public record RefreshTokenRequestDto(
 
+        @NotEmpty(message = "Refresh token cannot be null or empty")
         @Schema(
                 description = "The refresh token to renew the access token",
                 example = "d290f1ee-6c54-4b01-90e6-d701748f0851"
