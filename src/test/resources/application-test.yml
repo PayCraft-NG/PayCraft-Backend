@@ -1,0 +1,38 @@
+# Tests: in-memory H2 (MySQL mode), schema from Hibernate; Flyway disabled so MySQL-specific V1 is not applied.
+spring:
+  flyway:
+    enabled: false
+  datasource:
+    url: jdbc:h2:mem:paycraft_test;DB_CLOSE_DELAY=-1;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.MySQLDialect
+  mail:
+    enable: true
+    host: 127.0.0.1
+    port: 3025
+    username: test
+    password: test
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+management:
+  health:
+    mail:
+      enabled: false
+
+# Base64-encoded secret (JWTService decodes with Base64); 32 raw bytes when decoded.
+secret-string: YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY=
+kora-secret: test
+kora-public: test
+encryption-key: test-encryption-key-32chars-minimum!!
+webhook-url: http://localhost/webhook
+webhook-dev-url: http://localhost/webhook/
