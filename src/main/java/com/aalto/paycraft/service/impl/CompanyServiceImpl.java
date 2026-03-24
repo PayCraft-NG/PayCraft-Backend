@@ -51,8 +51,9 @@ public class CompanyServiceImpl implements ICompanyService {
     }
 
     @Override
-    public DefaultApiResponse<CompanyDTO> createCompany(CompanyDTO companyDTO, UUID employerId) {
+    public DefaultApiResponse<CompanyDTO> createCompany(CompanyDTO companyDTO) {
         DefaultApiResponse<CompanyDTO> response = new DefaultApiResponse<>();
+        UUID employerId = GET_ID("userID");
 
         // Check if the company already exists for this employer
         verifyRecordByCompanyNameAndEmployerId(companyDTO.getCompanyName(), employerId);

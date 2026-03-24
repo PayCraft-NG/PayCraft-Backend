@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,11 +18,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @Tag(
         name = "Companies",
-        description = "Company CRUD for employers. Creating a company is allowed without JWT when employerId is supplied."
+        description = "Company CRUD for authenticated employers."
 )
 @SecurityRequirement(name = "bearerAuth")
 @RestController
@@ -34,20 +32,18 @@ public class CompanyController {
 
     @Operation(
             summary = "Create company",
-            description = "Public when called with a valid employerId (post-signup onboarding)."
+            description = "Create a company for the authenticated employer."
     )
-    @SecurityRequirements
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Company created"),
-            @ApiResponse(responseCode = "400", description = "Validation error or invalid employerId")
+            @ApiResponse(responseCode = "400", description = "Validation error"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid JWT")
     })
     @PostMapping(value = "/create")
     public ResponseEntity<DefaultApiResponse<CompanyDTO>> createCompany(
-            @Valid @RequestBody CompanyDTO companyDTO,
-            @Parameter(description = "Employer UUID that owns the new company", required = true)
-            @Valid @RequestParam("employerId") UUID employerId) {
+            @Valid @RequestBody CompanyDTO companyDTO) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(iCompanyService.createCompany(companyDTO, employerId));
+                .body(iCompanyService.createCompany(companyDTO));
     }
 
     @Operation(
