@@ -93,7 +93,7 @@ The codebase follows a **classic layered architecture**. Dependencies generally 
 | System | Role in PayCraft |
 |--------|------------------|
 | **KoraPay** | Virtual accounts, transfers, card flows, bank lists, webhooks (`IKoraPayService` / `KoraPayServiceImpl`, `KoraPayWebhook`). |
-| **SMTP** | Login notifications and other mail (`IEmailService`, `EmailServiceImpl`); gated by `spring.mail.enable`. |
+| **Resend** | Login notifications and other mail (`IEmailService`, `EmailServiceImpl`); gated by `spring.mail.enable`. |
 | **USSD gateway** | `IUssdService` / `UssdServiceImpl` — session-oriented callback under `/api/v1/ussd`. |
 
 Webhook handling can run **asynchronously** via **`@Async`** and the **`taskExecutor`** bean (`AsyncConfig`).

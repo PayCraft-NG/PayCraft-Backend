@@ -13,16 +13,6 @@ spring:
     database-platform: org.hibernate.dialect.MySQLDialect
   mail:
     enable: true
-    host: 127.0.0.1
-    port: 3025
-    username: test
-    password: test
-    properties:
-      mail:
-        smtp:
-          auth: false
-          starttls:
-            enable: false
 
 management:
   health:
@@ -36,3 +26,6 @@ kora-public: test
 encryption-key: test-encryption-key-32chars-minimum!!
 webhook-url: http://localhost/webhook
 webhook-dev-url: http://localhost/webhook/
+resend:
+  api-key: test-resend-api-key
+  from-email: onboarding@resend.dev

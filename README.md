@@ -61,7 +61,7 @@ Cross-cutting behavior includes **JPA auditing**, **global exception handling** 
 | **Templating** | Thymeleaf (e.g. email or server-rendered content where used) |
 | **Build** | Maven |
 
-External integrations: **KoraPay** (payments, virtual accounts, webhooks), **SMTP** (Gmail-oriented defaults in `application.yml`).
+External integrations: **KoraPay** (payments, virtual accounts, webhooks), **Resend** (transactional email API).
 
 ---
 
@@ -110,12 +110,12 @@ Create a **`.env` file in the project root** for tools that load it, and export 
 | `DATABASE_PROD_PASSWORD` | Production DB password (`application-prod.yml`) |
 | Same Kora/JWT/encryption vars as above | |
 
-**Email (global mail block in `application.yml`)**
+**Email (Resend)**
 
 | Variable | Purpose |
 |----------|---------|
-| `EMAIL_SENDER` | SMTP username |
-| `EMAIL_PASSWORD` | SMTP password (e.g. app password) |
+| `RESEND_API_KEY` | Resend API key used by `EmailServiceImpl` |
+| `EMAIL_SENDER` | Verified Resend sender address (`resend.from-email`) |
 
 **Optional / defaults**
 
@@ -158,8 +158,8 @@ Never commit real secrets. Keep `.env` local (it is gitignored).
    export KORA_SECRET_KEY=your_kora_secret
    export KORA_PUBLIC_KEY=your_kora_public
    export ENCRYPTION_KEY=your_32_char_compatible_key_material
-   export EMAIL_SENDER=you@example.com
-   export EMAIL_PASSWORD=your_smtp_app_password
+   export RESEND_API_KEY=re_xxxxxxxxxxxxxxxxx
+   export EMAIL_SENDER=onboarding@resend.dev
    export FRONTEND_URL=http://localhost:5173
    ```
 

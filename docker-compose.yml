@@ -48,7 +48,7 @@ services:
       KORA_PUBLIC_KEY: ${KORA_PUBLIC_KEY:-change-me}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-change-me-32-char-key-material!!}
       EMAIL_SENDER: ${EMAIL_SENDER:-noreply@example.com}
-      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-change-me}
       SPRING_MAIL_ENABLE: "true"
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:6020}

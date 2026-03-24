@@ -1,12 +1,13 @@
 package com.aalto.paycraft.service.impl;
 
 import com.aalto.paycraft.service.IEmailService;
-import jakarta.mail.internet.MimeMessage;
+import com.resend.CreateEmailOptions;
+import com.resend.CreateEmailResponse;
+import com.resend.Resend;
+import com.resend.exceptions.ResendException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
@@ -16,11 +17,13 @@ import org.thymeleaf.context.Context;
 @Slf4j
 @RequiredArgsConstructor
 public class EmailServiceImpl implements IEmailService {
-    private final JavaMailSender mailSender;
-    private  final TemplateEngine templateEngine;
+    private final TemplateEngine templateEngine;
 
-    @Value("${spring.mail.username}")
+    @Value("${resend.from-email}")
     private String senderEmail;
+
+    @Value("${resend.api-key}")
+    private String resendApiKey;
 
     @Async
     @Override
@@ -33,19 +36,26 @@ public class EmailServiceImpl implements IEmailService {
         //noinspection ConstantValue
         while (retryCount < maxRetries) {
             try {
-                MimeMessage message = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(message, true);
-                helper.setFrom(senderEmail);
-                helper.setTo(toEmail);
-                helper.setSubject(subject);
-                helper.setText(htmlContent, true);
+                if (resendApiKey == null || resendApiKey.isBlank()) {
+                    throw new IllegalStateException("RESEND_API_KEY is not configured");
+                }
+                if (senderEmail == null || senderEmail.isBlank()) {
+                    throw new IllegalStateException("EMAIL_SENDER (resend.from-email) is not configured");
+                }
 
-                mailSender.send(message);
+                Resend resend = new Resend(resendApiKey);
+                CreateEmailOptions params = CreateEmailOptions.builder()
+                        .from(senderEmail)
+                        .to(toEmail)
+                        .subject(subject)
+                        .html(htmlContent)
+                        .build();
+                CreateEmailResponse response = resend.emails().send(params);
 
                 /* If successful, break out of the retry loop */
-                log.info("Email sent successfully");
+                log.info("Email sent successfully with Resend id={}", response.getId());
                 return;
-            } catch (Exception e) {
+            } catch (ResendException | RuntimeException e) {
                 retryCount++;
                 log.info("Attempt {} failed. Error: {}", retryCount, e.getMessage());
 

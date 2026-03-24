@@ -4,8 +4,8 @@ spring:
       on-profile: dev
   datasource:
     url: jdbc:mysql://localhost/${DATABASE_NAME:paycraft}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
+    username: ${DATABASE_USERNAME:root}
+    password: ${DATABASE_PASSWORD:rootroot}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
