@@ -90,10 +90,15 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             //====== Email Service ======//
             if (enableEmail){
                 log.info("===== Email Enabled =====");
-                emailService.sendEmail(employer.getEmailAddress(),
-                        "Login Notification",
-                        createEmailContext(employer.getFirstName(), frontendUrl),
-                        "login");
+                try {
+                    emailService.sendEmail(employer.getEmailAddress(),
+                            "Login Notification",
+                            createEmailContext(employer.getFirstName(), frontendUrl),
+                            "login");
+                } catch (RuntimeException ex) {
+                    // Login must remain successful even when notification email fails.
+                    log.error("Login notification email failed for {}: {}", employer.getEmailAddress(), ex.getMessage());
+                }
             }
             else
                 log.info("===== Email Disabled =====");
@@ -115,6 +120,8 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             return response;
         } catch (RuntimeException ex){
             log.error("An error occurred while performing Authentication for USER {}: {}", requestBody.emailAddress(), ex.getMessage());
+            response.setStatusCode(STATUS_400);
+            response.setStatusMessage(ex.getMessage() != null ? ex.getMessage() : "Login failed");
         }
         return response;
     }
@@ -157,10 +164,17 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
                     response.setData(responseDto);
                 } else {
                     log.warn("Invalid Token signature for user {}.", userEmail);
+                    response.setStatusCode(LOGIN_INVALID_CREDENTIALS);
+                    response.setStatusMessage("Invalid refresh token signature");
                 }
+            } else {
+                response.setStatusCode(STATUS_400);
+                response.setStatusMessage("User account not found for refresh token");
             }
         } catch (RuntimeException ex){
             log.error("An error occurred while refreshing the token: {}", ex.getMessage());
+            response.setStatusCode(STATUS_400);
+            response.setStatusMessage("Unable to refresh token");
         }
         return response;
     }
@@ -205,6 +219,9 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             }
         } else {
             // If no previous token, use the first company in employer's company list
+            if (employer.getCompanies() == null || employer.getCompanies().isEmpty()) {
+                throw new RuntimeException("Unable to Retrieve Company for Employer");
+            }
             companyId = employer.getCompanies().get(0).getCompanyId();
             log.info("No previous token found, using first company from employer's company list: {}", companyId);
         }

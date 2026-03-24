@@ -75,7 +75,8 @@ public class JWTService {
         claims.put("email", employer.getEmailAddress());
         claims.put("phoneNumber", employer.getPhoneNumber());
         claims.put("activeCompanyID", activeCompanyId);
-        claims.put("virtualAccountID", employer.getVirtualAccount().getAccountId());
+        claims.put("virtualAccountID",
+                employer.getVirtualAccount() != null ? employer.getVirtualAccount().getAccountId() : null);
         claims.put("companyIds", companyIds);
 
         return Jwts.builder()

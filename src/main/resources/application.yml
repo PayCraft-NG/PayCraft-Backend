@@ -1,9 +1,6 @@
 spring:
   flyway:
-    enabled: true
-    baseline-on-migrate: true
-    baseline-version: 1
-    baseline-description: Pre-Flyway Hibernate schema
+    enabled: false
   jpa:
     hibernate:
       ddl-auto: validate
@@ -17,6 +14,13 @@ spring:
 resend:
   api-key: ${RESEND_API_KEY}
   from-email: ${EMAIL_SENDER}
+
+auth:
+  cookie:
+    access-token-name: accessToken
+    refresh-token-name: refreshToken
+    secure: false
+    same-site: Lax
 
 payroll:
   job:

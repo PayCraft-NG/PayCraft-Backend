@@ -12,8 +12,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,6 +36,14 @@ public class AuthenticationController {
 
     // Service layer dependencies to handle authentication-related operations.
     private final IAuthenticationService authenticationService;
+    @Value("${auth.cookie.access-token-name:accessToken}")
+    private String accessTokenCookieName;
+    @Value("${auth.cookie.refresh-token-name:refreshToken}")
+    private String refreshTokenCookieName;
+    @Value("${auth.cookie.secure:false}")
+    private boolean secureCookie;
+    @Value("${auth.cookie.same-site:Lax}")
+    private String sameSiteCookie;
 
 
     /**
@@ -64,7 +75,7 @@ public class AuthenticationController {
     @PostMapping("/login")
     public ResponseEntity<DefaultApiResponse<AuthorizationResponseDto>> login(@RequestBody @Valid LoginRequestDto request){
         DefaultApiResponse<AuthorizationResponseDto> response = authenticationService.login(request);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return withAuthCookies(response);
     }
 
     /**
@@ -96,6 +107,32 @@ public class AuthenticationController {
     @PostMapping("/refresh-token")
     public ResponseEntity<DefaultApiResponse<AuthorizationResponseDto>> refreshToken(@RequestBody @Valid RefreshTokenRequestDto request){
         DefaultApiResponse<AuthorizationResponseDto> response = authenticationService.refreshToken(request);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return withAuthCookies(response);
+    }
+
+    private ResponseEntity<DefaultApiResponse<AuthorizationResponseDto>> withAuthCookies(
+            DefaultApiResponse<AuthorizationResponseDto> response) {
+        AuthorizationResponseDto data = response.getData();
+        if (data == null || data.accessToken() == null || data.refreshToken() == null) {
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        }
+        ResponseCookie accessCookie = ResponseCookie.from(accessTokenCookieName, data.accessToken())
+                .httpOnly(true)
+                .secure(secureCookie)
+                .sameSite(sameSiteCookie)
+                .path("/")
+                .maxAge(60L * 60L)
+                .build();
+        ResponseCookie refreshCookie = ResponseCookie.from(refreshTokenCookieName, data.refreshToken())
+                .httpOnly(true)
+                .secure(secureCookie)
+                .sameSite(sameSiteCookie)
+                .path("/")
+                .maxAge(60L * 60L * 24L)
+                .build();
+        return ResponseEntity.status(HttpStatus.OK)
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(response);
     }
 }
