@@ -7,7 +7,6 @@ import com.aalto.paycraft.dto.EmployerPasswordUpdateDTO;
 import com.aalto.paycraft.dto.EmployerUpdateDTO;
 import com.aalto.paycraft.entity.AuthToken;
 import com.aalto.paycraft.entity.Employer;
-import com.aalto.paycraft.entity.VirtualAccount;
 import com.aalto.paycraft.exception.EmployerAlreadyExists;
 import com.aalto.paycraft.exception.EmployerNotFound;
 import com.aalto.paycraft.exception.PasswordUpdateException;
@@ -81,12 +80,16 @@ public class EmployerServiceImpl implements IEmployerService {
         //====== Email Service ======//
         if (enableEmail){
             log.info("===== Email Enabled =====");
-           emailService.sendEmail(employer.getEmailAddress(),
-                   "Welcome to PayCraft",
-                   createEmailContext(employer.getFirstName(), frontendUrl),
-                   "signup");
-        }
-        else
+            try {
+                emailService.sendEmail(employer.getEmailAddress(),
+                        "Welcome to PayCraft",
+                        createEmailContext(employer.getFirstName(), frontendUrl),
+                        "signup");
+            } catch (RuntimeException ex) {
+                // Email delivery should not block successful onboarding.
+                log.error("Signup email failed for employer {}: {}", employer.getEmailAddress(), ex.getMessage());
+            }
+        } else
             log.info("===== Email Disabled =====");
         //====== Email Service ======//
 

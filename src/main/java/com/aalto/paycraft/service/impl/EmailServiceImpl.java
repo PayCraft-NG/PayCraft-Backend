@@ -42,10 +42,11 @@ public class EmailServiceImpl implements IEmailService {
                 if (senderEmail == null || senderEmail.isBlank()) {
                     throw new IllegalStateException("EMAIL_SENDER (resend.from-email) is not configured");
                 }
+                String sanitizedSenderEmail = senderEmail.trim().replace(";", "");
 
                 Resend resend = new Resend(resendApiKey);
                 CreateEmailOptions params = CreateEmailOptions.builder()
-                        .from(senderEmail)
+                        .from(sanitizedSenderEmail)
                         .to(toEmail)
                         .subject(subject)
                         .html(htmlContent)
