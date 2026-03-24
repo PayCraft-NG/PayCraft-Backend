@@ -153,12 +153,12 @@ class AuthenticationServiceImplTest {
         }
 
         @Test
-        @DisplayName("invalid email format throws from validate; caught as RuntimeException and yields empty status")
+        @DisplayName("invalid email format returns status 49")
         void invalidEmailFormat() {
             DefaultApiResponse<AuthorizationResponseDto> response = authenticationService.login(
                     new LoginRequestDto("not-an-email", rawPassword));
 
-            assertThat(response.getStatusCode()).isNull();
+            assertThat(response.getStatusCode()).isEqualTo(STATUS_400);
             assertThat(response.getData()).isNull();
             verify(employerRepository, never()).findByEmailAddress(any());
         }
@@ -207,7 +207,7 @@ class AuthenticationServiceImplTest {
         }
 
         @Test
-        @DisplayName("does not set success when employer is unknown for refresh subject")
+        @DisplayName("returns 49 when employer is unknown for refresh subject")
         void employerMissingForEmail() {
             when(jwtService.extractUsername("orphan-refresh")).thenReturn("ghost@example.com");
             when(jwtService.isTokenExpired("orphan-refresh")).thenReturn(false);
@@ -216,12 +216,12 @@ class AuthenticationServiceImplTest {
             DefaultApiResponse<AuthorizationResponseDto> response = authenticationService.refreshToken(
                     new RefreshTokenRequestDto("orphan-refresh"));
 
-            assertThat(response.getStatusCode()).isNull();
+            assertThat(response.getStatusCode()).isEqualTo(STATUS_400);
             assertThat(response.getData()).isNull();
         }
 
         @Test
-        @DisplayName("does not set success when refresh signature validation fails")
+        @DisplayName("returns 11 when refresh signature validation fails")
         void refreshNotValidForUser() {
             Employer employer = employerWithCompany();
             when(jwtService.extractUsername("bad-refresh")).thenReturn(email);
@@ -232,20 +232,20 @@ class AuthenticationServiceImplTest {
             DefaultApiResponse<AuthorizationResponseDto> response = authenticationService.refreshToken(
                     new RefreshTokenRequestDto("bad-refresh"));
 
-            assertThat(response.getStatusCode()).isNull();
+            assertThat(response.getStatusCode()).isEqualTo(LOGIN_INVALID_CREDENTIALS);
             assertThat(response.getData()).isNull();
             verify(tokenRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("malformed refresh token: extractUsername throws; yields empty response")
+        @DisplayName("malformed refresh token returns status 49")
         void malformedToken() {
             when(jwtService.extractUsername("@@@")).thenThrow(new RuntimeException("invalid token"));
 
             DefaultApiResponse<AuthorizationResponseDto> response = authenticationService.refreshToken(
                     new RefreshTokenRequestDto("@@@"));
 
-            assertThat(response.getStatusCode()).isNull();
+            assertThat(response.getStatusCode()).isEqualTo(STATUS_400);
             assertThat(response.getData()).isNull();
         }
     }
@@ -255,8 +255,8 @@ class AuthenticationServiceImplTest {
     class LoginCompanyEdgeCase {
 
         @Test
-        @DisplayName("returns 49 with partial data when employer has no companies and no prior token")
-        void noCompaniesThrowsIndexOutOfBoundsMappedToResponse() {
+        @DisplayName("returns 49 when employer has no companies and no prior token")
+        void noCompaniesReturnsErrorResponse() {
             Employer employer = Employer.builder()
                     .employerId(employerId)
                     .emailAddress(email)
@@ -274,8 +274,7 @@ class AuthenticationServiceImplTest {
 
             assertThat(response.getStatusCode()).isEqualTo(STATUS_400);
             assertThat(response.getStatusMessage()).containsIgnoringCase("Unable to Retrieve Company");
-            assertThat(response.getData()).isNotNull();
-            assertThat(response.getData().employerId()).isEqualTo(String.valueOf(employerId));
+            assertThat(response.getData()).isNull();
         }
 
         @Test
