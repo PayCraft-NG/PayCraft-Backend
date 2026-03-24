@@ -173,7 +173,7 @@ Never commit real secrets. Keep `.env` local (it is gitignored).
 
 ## Database migrations (Flyway)
 
-- **Scripts**: [`src/main/resources/db/migration/`](src/main/resources/db/migration/) — MySQL `V1__initial_schema.sql`. **PostgreSQL** (Docker Compose): [`db/migration/postgresql/V1__initial_schema.sql`](src/main/resources/db/migration/postgresql/V1__initial_schema.sql), applied when profile **`docker`** is active (see [`application-docker.yml`](src/main/resources/application-docker.yml)).
+- **Scripts**: MySQL migrations in [`src/main/resources/db/migration/mysql/`](src/main/resources/db/migration/mysql/) and PostgreSQL migrations in [`src/main/resources/db/migration/postgresql/`](src/main/resources/db/migration/postgresql/). Profile-specific Flyway locations prevent cross-database version collisions.
 - **Runtime**: Flyway runs on startup before JPA; Hibernate **`ddl-auto` is `validate`** so the live schema must match entities and applied migrations.
 - **New database**: empty schema → Flyway applies `V1` and creates all tables.
 - **Existing database** (already created with older Hibernate `ddl-auto: update`): `spring.flyway.baseline-on-migrate: true` and `baseline-version: 1` record the current state as version **1** without re-running `V1`, so you avoid “table already exists” errors. Add **`V2__...sql`** (and later) for real changes going forward.

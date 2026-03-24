@@ -7,6 +7,8 @@ spring:
     username: ${DATABASE_USERNAME:root}
     password: ${DATABASE_PASSWORD:rootroot}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    locations: classpath:db/migration/mysql
   jpa:
     hibernate:
       ddl-auto: validate
