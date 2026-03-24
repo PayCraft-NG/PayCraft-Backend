@@ -5,6 +5,7 @@ import com.aalto.paycraft.dto.*;
 import com.aalto.paycraft.entity.Company;
 import com.aalto.paycraft.entity.Employee;
 import com.aalto.paycraft.entity.Payroll;
+import com.aalto.paycraft.exception.PayrollNotFound;
 import com.aalto.paycraft.mapper.CompanyMapper;
 import com.aalto.paycraft.mapper.PayrollMapper;
 import com.aalto.paycraft.repository.CompanyRepository;
@@ -315,7 +316,7 @@ public class PayrollServiceImpl implements IPayrollService {
     // Fetch payroll by ID and verify existence
     private Payroll verifyAndFetchPayrollById(UUID payrollId) {
         return payrollRepository.findById(payrollId).orElseThrow(
-                () -> new RuntimeException("Payroll ID does not exist: " + payrollId)
+                () -> new PayrollNotFound("Payroll ID does not exist: " + payrollId)
         );
     }
 

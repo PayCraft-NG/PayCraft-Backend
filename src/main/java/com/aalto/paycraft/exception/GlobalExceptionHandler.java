@@ -64,6 +64,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .body(buildError(request, HttpStatus.BAD_REQUEST, ex.getMessage()));
     }
 
+    @ExceptionHandler(PayrollNotFound.class)
+    public ResponseEntity<ErrorResponseDto> handlePayrollNotFound(PayrollNotFound ex, WebRequest request) {
+        log.warn("Payroll not found [{}]: {}", request.getDescription(false), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(buildError(request, HttpStatus.NOT_FOUND, ex.getMessage()));
+    }
+
     // -------------------------------------------------------------------------
     // JWT / security exceptions
     // -------------------------------------------------------------------------
