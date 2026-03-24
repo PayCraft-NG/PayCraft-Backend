@@ -161,8 +161,8 @@ CREATE TABLE notification (
 
 CREATE TABLE auth_token (
     id BIGINT NOT NULL AUTO_INCREMENT,
-    access_token VARCHAR(2048) NOT NULL,
-    refresh_token VARCHAR(2048) NOT NULL,
+    access_token VARCHAR(512) NOT NULL,
+    refresh_token VARCHAR(512) NOT NULL,
     expired TINYINT(1) NOT NULL DEFAULT 0,
     revoked TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME(6) NULL,

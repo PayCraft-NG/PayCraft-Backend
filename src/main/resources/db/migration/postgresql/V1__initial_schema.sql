@@ -156,8 +156,8 @@ CREATE TABLE notification (
 
 CREATE TABLE auth_token (
     id BIGSERIAL PRIMARY KEY,
-    access_token VARCHAR(2048) NOT NULL,
-    refresh_token VARCHAR(2048) NOT NULL,
+    access_token VARCHAR(512) NOT NULL,
+    refresh_token VARCHAR(512) NOT NULL,
     expired BOOLEAN NOT NULL DEFAULT FALSE,
     revoked BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP(6),
