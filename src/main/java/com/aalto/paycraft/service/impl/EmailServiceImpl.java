@@ -1,10 +1,10 @@
 package com.aalto.paycraft.service.impl;
 
 import com.aalto.paycraft.service.IEmailService;
-import com.resend.CreateEmailOptions;
-import com.resend.CreateEmailResponse;
 import com.resend.Resend;
-import com.resend.exceptions.ResendException;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.CreateEmailResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
