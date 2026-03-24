@@ -9,7 +9,7 @@ spring:
     password: ${DATABASE_PASSWORD:paycraft}
     driver-class-name: org.postgresql.Driver
   flyway:
-    enabled: true
+    enabled: false
     locations: classpath:db/migration/postgresql
     baseline-on-migrate: true
     baseline-version: 1
